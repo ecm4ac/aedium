@@ -1,65 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>13th Age Feats Viewer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>13th Age Feats</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>13th Age Feats</h1>
-  <div id="feats-container"></div>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Filters</h2>
+            <div id="filters"></div>
+        </aside>
 
-  <script>
-    // Load JSON and display feats
-    fetch('feats.json')
-      .then(response => response.json())
-      .then(data => {
-        const container = document.getElementById('feats-container');
+        <!-- Main Content -->
+        <main class="main-content">
+            <h1>13th Age Feats</h1>
+            <div id="feat-list">
+                <p>Make a selection to view feats.</p>
+            </div>
+        </main>
+    </div>
 
-        data.forEach(feat => {
-          // Create wrapper div
-          const featDiv = document.createElement('div');
-          featDiv.style.border = "1px solid #ccc";
-          featDiv.style.margin = "10px";
-          featDiv.style.padding = "10px";
-
-          // Add feat name
-          const nameEl = document.createElement('h2');
-          nameEl.textContent = feat.name;
-          featDiv.appendChild(nameEl);
-
-          // Add basic info
-          const meta = document.createElement('p');
-          meta.innerHTML = `
-            <strong>Class:</strong> ${feat.class || '—'}<br>
-            <strong>Ancestry:</strong> ${feat.ancestry || '—'}<br>
-            <strong>Category:</strong> ${feat.category || '—'}<br>
-            <strong>Group:</strong> ${feat.group || '—'}<br>
-            <strong>Feature Tier:</strong> ${feat.featureTier || '—'}<br>
-            <strong>Feature Level:</strong> ${feat.featureLevel || '—'}<br>
-            <strong>Parent Trait:</strong> ${feat.parentTrait || '—'}<br>
-            <strong>Spell Name:</strong> ${feat.spellName || '—'}<br>
-            <strong>Spell Level:</strong> ${feat.spellLevel || '—'}<br>
-            <strong>Tag:</strong> ${feat.tag || '—'}
-          `;
-          featDiv.appendChild(meta);
-
-          // Add feats array
-          if (feat.feats && feat.feats.length > 0) {
-            const featsList = document.createElement('ul');
-            feat.feats.forEach(f => {
-              const li = document.createElement('li');
-              li.innerHTML = `<strong>${f.tier}:</strong> ${f.description}`;
-              featsList.appendChild(li);
-            });
-            featDiv.appendChild(featsList);
-          }
-
-          container.appendChild(featDiv);
-        });
-      })
-      .catch(err => {
-        console.error("Error loading feats.json:", err);
-      });
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
