@@ -129,3 +129,17 @@ function renderResults(results, tierFilters = []) {
         container.appendChild(card);
     });
 }
+
+// Reset button clears all filters
+document.getElementById('reset-filters').addEventListener('click', () => {
+    document.querySelectorAll('#sidebar input[type=checkbox]').forEach(cb => cb.checked = false);
+    applyFilters(); // re-run filter logic
+});
+
+// Accordion logic - start all open
+document.querySelectorAll('.accordion').forEach(acc => {
+    acc.classList.add('open');
+    acc.querySelector('h3').addEventListener('click', () => {
+        acc.classList.toggle('open');
+    });
+});
