@@ -1,38 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>13th Age Feats</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>13th Age Feats</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>13th Age Feats</h1>
 
-    <div id="filters">
-        <div>
-            <label>Ancestry:</label>
-            <select id="ancestry-filter">
-                <option value="">All</option>
-            </select>
-        </div>
-        <div>
-            <label>Class:</label>
-            <select id="class-filter">
-                <option value="">All</option>
-            </select>
-        </div>
-        <div>
-            <label>Tier:</label>
-            <label><input type="radio" name="Tier" value=""> All</label>
-            <label><input type="radio" name="Tier" value="Adventurer"> Adventurer</label>
-            <label><input type="radio" name="Tier" value="Champion"> Champion</label>
-            <label><input type="radio" name="Tier" value="Epic"> Epic</label>
-        </div>
-    </div>
+<div id="app-container">
+    <!-- Left Sidebar -->
+    <aside id="sidebar">
+        <h2>Filters</h2>
 
-    <div id="results-container"></div>
+        <div class="filter-group">
+            <h3>Type</h3>
+            <label><input type="checkbox" name="Type" value="General"> General</label>
+            <label><input type="checkbox" name="Type" value="Ancestry"> Ancestry</label>
+            <label><input type="checkbox" name="Type" value="Class"> Class</label>
+        </div>
 
-    <script src="script.js"></script>
+        <div class="filter-group">
+            <h3>Tier</h3>
+            <label><input type="checkbox" name="Tier" value="Adventurer"> Adventurer</label>
+            <label><input type="checkbox" name="Tier" value="Champion"> Champion</label>
+            <label><input type="checkbox" name="Tier" value="Epic"> Epic</label>
+        </div>
+
+        <div class="filter-group">
+            <h3>Ancestry</h3>
+            <div id="ancestry-filters"></div>
+        </div>
+
+        <div class="filter-group">
+            <h3>Class</h3>
+            <div id="class-filters"></div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <h1>13th Age Feats</h1>
+        <div id="results-container"></div>
+    </main>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>

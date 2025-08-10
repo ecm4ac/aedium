@@ -4,109 +4,104 @@ fetch('feats.json')
     .then(response => response.json())
     .then(data => {
         featsData = data;
-        populateFilters(data);
+        populateFilterOptions(data);
         renderResults(data);
     })
     .catch(err => console.error('Error loading feats.json:', err));
 
-function populateFilters(data) {
-    const ancestrySelect = document.getElementById('ancestry-filter');
-    const classSelect = document.getElementById('class-filter');
+function populateFilterOptions(data) {
+    const ancestryContainer = document.getElementById('ancestry-filters');
+    const classContainer = document.getElementById('class-filters');
 
     const ancestries = [...new Set(data.map(f => f.ancestry).filter(Boolean))].sort();
     const classes = [...new Set(data.map(f => f.class).filter(Boolean))].sort();
 
     ancestries.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a;
-        opt.textContent = a;
-        ancestrySelect.appendChild(opt);
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" name="Ancestry" value="${a}"> ${a}`;
+        ancestryContainer.appendChild(label);
     });
 
     classes.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        classSelect.appendChild(opt);
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" name="Class" value="${c}"> ${c}`;
+        classContainer.appendChild(label);
     });
 
-    ancestrySelect.addEventListener('change', applyFilters);
-    classSelect.addEventListener('change', applyFilters);
-    document.querySelectorAll('input[name="Tier"]').forEach(radio => {
-        radio.addEventListener('change', applyFilters);
+    document.querySelectorAll('#sidebar input').forEach(input => {
+        input.addEventListener('change', applyFilters);
     });
-}
-
-function getSelectedTier() {
-    const selected = document.querySelector('input[name="Tier"]:checked');
-    return selected && selected.value !== "" ? selected.value : null;
 }
 
 function applyFilters() {
-    const ancestryVal = document.getElementById('ancestry-filter').value;
-    const classVal = document.getElementById('class-filter').value;
-    const tierVal = getSelectedTier();
+    const typeFilters = getCheckedValues('Type');
+    const tierFilters = getCheckedValues('Tier');
+    const ancestryFilters = getCheckedValues('Ancestry');
+    const classFilters = getCheckedValues('Class');
 
     const filtered = featsData.filter(f => {
         let match = true;
-        if (ancestryVal && f.ancestry !== ancestryVal) match = false;
-        if (classVal && f.class !== classVal) match = false;
 
-        if (tierVal) {
-            const regex = new RegExp(`${tierVal}\\s*-\\s*`, 'i');
-            if (!regex.test(f.featDescription || "")) match = false;
+        if (typeFilters.length && !typeFilters.includes(f.category)) match = false;
+        if (ancestryFilters.length && !ancestryFilters.includes(f.ancestry)) match = false;
+        if (classFilters.length && !classFilters.includes(f.class)) match = false;
+
+        // Tier filter check: feat must have at least one matching tier
+        if (tierFilters.length) {
+            const hasTier = f.feats && f.feats.some(t => tierFilters.includes(t.tier));
+            if (!hasTier) match = false;
         }
 
         return match;
     });
 
-    renderResults(filtered);
+    renderResults(filtered, tierFilters);
 }
 
-function renderResults(results) {
+function getCheckedValues(name) {
+    return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(cb => cb.value);
+}
+
+function renderResults(results, tierFilters = []) {
     const container = document.getElementById('results-container');
     container.innerHTML = '';
 
-    if (results.length === 0) {
+    if (!results.length) {
         container.innerHTML = '<p>No feats match your current filters.</p>';
         return;
     }
 
-    const tierFilter = getSelectedTier();
-
-    results.forEach(feat => {
+    results.forEach(f => {
         const card = document.createElement('div');
         card.classList.add('feat-card');
 
-        const metaParts = [];
-        if (feat.category) metaParts.push(feat.category);
-        if (feat.ancestry) metaParts.push(feat.ancestry);
-        if (feat.class) metaParts.push(feat.class);
+        // Build meta line dynamically and cleanly
+        const metaParts = [f.category, f.ancestry, f.class, f.group, f.featureTier, f.parentTrait, f.spellLevel, f.featureLevel]
+            .filter(Boolean)
+            .join(' | ');
 
-        let tierSections = '';
-        if (feat.featDescription) {
-            const tierOrder = ['Adventurer', 'Champion', 'Epic'];
-
-            tierOrder.forEach(tier => {
-                const regex = new RegExp(`${tier}\\s*-\\s*(.*?)(?=(Adventurer|Champion|Epic|$))`, 'is');
-                const match = feat.featDescription.match(regex);
-
-                if (match && match[1].trim()) {
-                    if (!tierFilter || tierFilter === tier) {
-                        tierSections += `<p><strong>${tier}</strong> - ${match[1].trim()}</p>`;
-                    }
+        // Build feat description sections
+        let descHtml = '';
+        if (Array.isArray(f.feats)) {
+            f.feats.forEach(entry => {
+                if (!tierFilters.length || tierFilters.includes(entry.tier)) {
+                    descHtml += `<p><strong>${entry.tier}</strong> - ${entry.description}</p>`;
                 }
             });
         }
 
-        if (tierFilter && tierSections.trim() === '') {
-            return;
+        // Tags as pill elements
+        let tagHtml = '';
+        if (f.tag) {
+            const tags = f.tag.split(',').map(t => t.trim()).filter(Boolean);
+            tags.forEach(tag => tagHtml += `<span class="tag">${tag}</span>`);
         }
 
         card.innerHTML = `
-            <h3><strong>${feat.name}</strong></h3>
-            <div class="feat-meta">${metaParts.join(' | ')}</div>
-            <div class="feat-description">${tierSections}</div>
+            <h3><strong>${f.name}</strong></h3>
+            ${metaParts ? `<div class="feat-meta">${metaParts}</div>` : ''}
+            <div class="feat-description">${descHtml}</div>
+            ${tagHtml ? `<div class="feat-tags">${tagHtml}</div>` : ''}
         `;
 
         container.appendChild(card);
