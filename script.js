@@ -1,133 +1,114 @@
-let feats = [];
-let activeFilters = {
-    Type: [],
-    Tier: [],
-    Ancestry: [],
-    Class: []
-};
+let featsData = [];
 
-// Define filter categories & options
-const filterData = {
-    "Type": ["General", "Ancestry", "Class"],
-    "Tier": ["Adventurer", "Champion", "Epic"],
-    "Ancestry": [
-        "Alar Elf","Arranite","Caul-Born","Cayori","Dennai","Dorofei","Dwarf","Forged","Grovewarden",
-        "Half-Dwarf","Half-Elf","Half-Orc","Herutak","Human","Kahari","Kolak","Kryssharak","Kythrian",
-        "Lyncanthrope","Minotaur","Nomadic Elf","Orc","Relekkin","Stoneborn","Tontu","Tryllan",
-        "Tulaak","Varkari","Vathir","Veyari","Yossar"
-    ],
-    "Class": [
-        "Abomination","Aeon Summoner","Avenger","Barbarian","Bard","Chaos Mage","Cleric","Commander",
-        "Druid","Fateweaver","Fighter","Haunted One","Monk","Necromancer","Occultist","Paladin",
-        "Psion","Ranger","Rogue","Savage","Slayer","Sorcerer","Swordmage","The Fury","Theurge",
-        "Vanguard","Warlock","Wizard"
-    ]
-};
+fetch('feats.json')
+    .then(response => response.json())
+    .then(data => {
+        featsData = data;
+        populateFilters(data);
+        renderResults(data);
+    })
+    .catch(err => console.error('Error loading feats.json:', err));
 
-document.addEventListener("DOMContentLoaded", () => {
-    fetch("feats.json")
-        .then(res => res.json())
-        .then(data => {
-            feats = data;
-            renderFilters();
-        });
-});
+function populateFilters(data) {
+    const ancestrySelect = document.getElementById('ancestry-filter');
+    const classSelect = document.getElementById('class-filter');
 
-function renderFilters() {
-    const filterContainer = document.getElementById("filters");
-    filterContainer.innerHTML = "";
+    const ancestries = [...new Set(data.map(f => f.ancestry).filter(Boolean))].sort();
+    const classes = [...new Set(data.map(f => f.class).filter(Boolean))].sort();
 
-    for (let category in filterData) {
-        const group = document.createElement("div");
-        group.className = "filter-group";
+    ancestries.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        ancestrySelect.appendChild(opt);
+    });
 
-        const header = document.createElement("h3");
-        header.textContent = category;
-        header.addEventListener("click", () => {
-            optionsDiv.style.display = optionsDiv.style.display === "block" ? "none" : "block";
-        });
+    classes.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        classSelect.appendChild(opt);
+    });
 
-        const optionsDiv = document.createElement("div");
-        optionsDiv.className = "filter-options";
-
-        filterData[category].forEach(option => {
-            const label = document.createElement("label");
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.value = option;
-            checkbox.addEventListener("change", () => {
-                toggleFilter(category, option, checkbox.checked);
-            });
-
-            const span = document.createElement("span");
-            span.textContent = option;
-
-            label.appendChild(checkbox);
-            label.appendChild(span);
-            optionsDiv.appendChild(label);
-        });
-
-        group.appendChild(header);
-        group.appendChild(optionsDiv);
-        filterContainer.appendChild(group);
-    }
-}
-
-function toggleFilter(category, option, isChecked) {
-    if (isChecked) {
-        activeFilters[category].push(option);
-    } else {
-        activeFilters[category] = activeFilters[category].filter(o => o !== option);
-    }
-    updateFeatList();
-}
-
-function updateFeatList() {
-    const list = document.getElementById("feat-list");
-    let filtered = feats.filter(f => matchesFilters(f));
-
-    // Disable filters with zero matches
-    disableUnusedFilters(filtered);
-
-    if (filtered.length === 0) {
-        list.innerHTML = "<p>No feats match your selection.</p>";
-        return;
-    }
-
-    list.innerHTML = "";
-    filtered.forEach(f => {
-        const card = document.createElement("div");
-        card.className = "feat-card";
-        card.innerHTML = `<strong>${f.name}</strong> (${f.featTier})<br>${f.featDescription}`;
-        list.appendChild(card);
+    ancestrySelect.addEventListener('change', applyFilters);
+    classSelect.addEventListener('change', applyFilters);
+    document.querySelectorAll('input[name="Tier"]').forEach(radio => {
+        radio.addEventListener('change', applyFilters);
     });
 }
 
-function matchesFilters(feat) {
-    for (let cat in activeFilters) {
-        if (activeFilters[cat].length > 0) {
-            if (cat === "Type" && !activeFilters[cat].includes(feat.category)) return false;
-            if (cat === "Tier" && !activeFilters[cat].includes(feat.featTier)) return false;
-            if (cat === "Ancestry" && !activeFilters[cat].includes(feat.ancestry)) return false;
-            if (cat === "Class" && !activeFilters[cat].includes(feat.class)) return false;
-        }
-    }
-    return true;
+function getSelectedTier() {
+    const selected = document.querySelector('input[name="Tier"]:checked');
+    return selected && selected.value !== "" ? selected.value : null;
 }
 
-function disableUnusedFilters(filteredFeats) {
-    document.querySelectorAll(".filter-group").forEach(group => {
-        const category = group.querySelector("h3").textContent;
-        const options = group.querySelectorAll("input[type='checkbox']");
+function applyFilters() {
+    const ancestryVal = document.getElementById('ancestry-filter').value;
+    const classVal = document.getElementById('class-filter').value;
+    const tierVal = getSelectedTier();
 
-        options.forEach(checkbox => {
-            let hasMatch = filteredFeats.some(f => {
-                if (category === "Type") return f.category === checkbox.value;
-                if (category === "Tier") return f.featTier === checkbox.value;
-                if (category === "Ancestry") return f.ancestry === checkbox.value;
-                if (category === "Class") return f.class === checkbox.value;
+    const filtered = featsData.filter(f => {
+        let match = true;
+        if (ancestryVal && f.ancestry !== ancestryVal) match = false;
+        if (classVal && f.class !== classVal) match = false;
+
+        if (tierVal) {
+            const regex = new RegExp(`${tierVal}\\s*-\\s*`, 'i');
+            if (!regex.test(f.featDescription || "")) match = false;
+        }
+
+        return match;
+    });
+
+    renderResults(filtered);
+}
+
+function renderResults(results) {
+    const container = document.getElementById('results-container');
+    container.innerHTML = '';
+
+    if (results.length === 0) {
+        container.innerHTML = '<p>No feats match your current filters.</p>';
+        return;
+    }
+
+    const tierFilter = getSelectedTier();
+
+    results.forEach(feat => {
+        const card = document.createElement('div');
+        card.classList.add('feat-card');
+
+        const metaParts = [];
+        if (feat.category) metaParts.push(feat.category);
+        if (feat.ancestry) metaParts.push(feat.ancestry);
+        if (feat.class) metaParts.push(feat.class);
+
+        let tierSections = '';
+        if (feat.featDescription) {
+            const tierOrder = ['Adventurer', 'Champion', 'Epic'];
+
+            tierOrder.forEach(tier => {
+                const regex = new RegExp(`${tier}\\s*-\\s*(.*?)(?=(Adventurer|Champion|Epic|$))`, 'is');
+                const match = feat.featDescription.match(regex);
+
+                if (match && match[1].trim()) {
+                    if (!tierFilter || tierFilter === tier) {
+                        tierSections += `<p><strong>${tier}</strong> - ${match[1].trim()}</p>`;
+                    }
+                }
             });
-            checkbox.disabled = !hasMatch;
-        });
+        }
+
+        if (tierFilter && tierSections.trim() === '') {
+            return;
+        }
+
+        card.innerHTML = `
+            <h3><strong>${feat.name}</strong></h3>
+            <div class="feat-meta">${metaParts.join(' | ')}</div>
+            <div class="feat-description">${tierSections}</div>
+        `;
+
+        container.appendChild(card);
     });
 }

@@ -7,21 +7,31 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <h2>Filters</h2>
-            <div id="filters"></div>
-        </aside>
+    <h1>13th Age Feats</h1>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <h1>13th Age Feats</h1>
-            <div id="feat-list">
-                <p>Make a selection to view feats.</p>
-            </div>
-        </main>
+    <div id="filters">
+        <div>
+            <label>Ancestry:</label>
+            <select id="ancestry-filter">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div>
+            <label>Class:</label>
+            <select id="class-filter">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div>
+            <label>Tier:</label>
+            <label><input type="radio" name="Tier" value=""> All</label>
+            <label><input type="radio" name="Tier" value="Adventurer"> Adventurer</label>
+            <label><input type="radio" name="Tier" value="Champion"> Champion</label>
+            <label><input type="radio" name="Tier" value="Epic"> Epic</label>
+        </div>
     </div>
+
+    <div id="results-container"></div>
 
     <script src="script.js"></script>
 </body>
