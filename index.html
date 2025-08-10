@@ -1,57 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>13th Age Feats</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>13th Age Feats</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="app-container">
+    <!-- LEFT SIDEBAR (fixed) -->
+    <aside id="sidebar" role="navigation" aria-label="Filters">
+      <button id="reset-filters" class="reset-btn">Reset All Filters</button>
 
-<div id="app-container">
-    <!-- Left Sidebar -->
-    <aside id="sidebar">
-        <h2>Filters</h2>
-
-            <!-- Reset Button -->
-    <button id="reset-filters" class="reset-btn">Reset All Filters</button>
-
-    <div class="accordion open">
-        <h3>Type</h3>
+      <div class="accordion open">
+        <h3 class="acc-header">Type</h3>
         <div class="accordion-content">
-            <label><input type="checkbox" name="Type" value="General"> General</label>
-            <label><input type="checkbox" name="Type" value="Ancestry"> Ancestry</label>
-            <label><input type="checkbox" name="Type" value="Class"> Class</label>
+          <label><input type="checkbox" name="Type" value="General"> General</label>
+          <label><input type="checkbox" name="Type" value="Ancestry"> Ancestry</label>
+          <label><input type="checkbox" name="Type" value="Class"> Class</label>
         </div>
-    </div>
+      </div>
 
-    <div class="accordion open">
-        <h3>Tier</h3>
+      <div class="accordion open">
+        <h3 class="acc-header">Tier</h3>
         <div class="accordion-content">
-            <label><input type="checkbox" name="Tier" value="Adventurer"> Adventurer</label>
-            <label><input type="checkbox" name="Tier" value="Champion"> Champion</label>
-            <label><input type="checkbox" name="Tier" value="Epic"> Epic</label>
+          <label><input type="checkbox" name="Tier" value="Adventurer"> Adventurer</label>
+          <label><input type="checkbox" name="Tier" value="Champion"> Champion</label>
+          <label><input type="checkbox" name="Tier" value="Epic"> Epic</label>
         </div>
-    </div>
+      </div>
 
-    <div class="accordion open">
-        <h3>Ancestry</h3>
-        <div class="accordion-content" id="ancestry-filters"></div>
-    </div>
+      <div class="accordion open">
+        <h3 class="acc-header">Ancestry</h3>
+        <div class="accordion-content" id="ancestry-filters">
+          <!-- dynamically filled -->
+        </div>
+      </div>
 
-    <div class="accordion open">
-        <h3>Class</h3>
-        <div class="accordion-content" id="class-filters"></div>
-    </div>
+      <div class="accordion open">
+        <h3 class="acc-header">Class</h3>
+        <div class="accordion-content" id="class-filters">
+          <!-- dynamically filled -->
+        </div>
+      </div>
     </aside>
 
-    <!-- Main Content -->
-    <main id="main-content">
+    <!-- MAIN CONTENT -->
+    <main id="main-content" role="main">
+      <header class="results-header">
         <h1>13th Age Feats</h1>
-        <div id="results-container"></div>
-    </main>
-</div>
+        <div id="active-filters" aria-live="polite"></div>
+      </header>
 
-<script src="script.js"></script>
+      <section id="results-area">
+        <div id="results-container"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
