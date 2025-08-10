@@ -76,3 +76,25 @@ body {
     border-radius: 4px;
     font-size: 0.8em;
 }
+
+/* Accordion styles */
+.accordion h3 {
+    margin: 0;
+    padding: 10px;
+    background: #ddd;
+    cursor: pointer;
+}
+.accordion h3.active {
+    background: #bbb;
+}
+.accordion-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.2s ease-out;
+    padding-left: 10px;
+}
+
+.accordion-content label {
+    display: block; /* one checkbox per line */
+    margin: 3px 0;
+}

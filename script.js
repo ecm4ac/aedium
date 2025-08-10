@@ -31,6 +31,19 @@ function populateFilterOptions(data) {
     document.querySelectorAll('#sidebar input').forEach(input => {
         input.addEventListener('change', applyFilters);
     });
+
+    // Accordion toggles
+    document.querySelectorAll('.accordion h3').forEach(header => {
+        header.addEventListener('click', () => {
+            header.classList.toggle('active');
+            const content = header.nextElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+        });
+    });
 }
 
 function applyFilters() {
@@ -46,7 +59,7 @@ function applyFilters() {
         if (ancestryFilters.length && !ancestryFilters.includes(f.ancestry)) match = false;
         if (classFilters.length && !classFilters.includes(f.class)) match = false;
 
-        // Tier filter check: feat must have at least one matching tier
+        // Tier filter check
         if (tierFilters.length) {
             const hasTier = f.feats && f.feats.some(t => tierFilters.includes(t.tier));
             if (!hasTier) match = false;
@@ -75,10 +88,19 @@ function renderResults(results, tierFilters = []) {
         const card = document.createElement('div');
         card.classList.add('feat-card');
 
-        // Build meta line dynamically and cleanly
-        const metaParts = [f.category, f.ancestry, f.class, f.group, f.featureTier, f.parentTrait, f.spellLevel, f.featureLevel]
-            .filter(Boolean)
-            .join(' | ');
+        // Build meta line based on category rules
+        let metaParts = [];
+        if (f.category === 'Ancestry') {
+            metaParts.push(`${f.ancestry}${f.group ? ' ' + f.group : ''}`);
+        } else if (f.category === 'Class') {
+            metaParts.push(`${f.class}${f.group ? ' ' + f.group : ''}`);
+        } else {
+            metaParts.push(f.category);
+        }
+        if (f.parentTrait) metaParts.push(f.parentTrait);
+        if (f.featureTier) metaParts.push(`${f.featureTier} Tier`);
+        if (f.featureLevel) metaParts.push(`Req Level: ${f.featureLevel}`);
+        if (f.spellLevel) metaParts.push(`${f.spellLevel} Level`);
 
         // Build feat description sections
         let descHtml = '';
@@ -99,7 +121,7 @@ function renderResults(results, tierFilters = []) {
 
         card.innerHTML = `
             <h3><strong>${f.name}</strong></h3>
-            ${metaParts ? `<div class="feat-meta">${metaParts}</div>` : ''}
+            ${metaParts.length ? `<div class="feat-meta">${metaParts.join(' | ')}</div>` : ''}
             <div class="feat-description">${descHtml}</div>
             ${tagHtml ? `<div class="feat-tags">${tagHtml}</div>` : ''}
         `;
