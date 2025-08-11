@@ -33,29 +33,65 @@
       <div class="accordion open">
         <h3 class="acc-header">Ancestry</h3>
         <div class="accordion-content" id="ancestry-filters">
-          <!-- dynamically filled -->
+          <!-- dynamic -->
         </div>
       </div>
 
       <div class="accordion open">
         <h3 class="acc-header">Class</h3>
         <div class="accordion-content" id="class-filters">
-          <!-- dynamically filled -->
+          <!-- dynamic -->
         </div>
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main id="main-content" role="main">
-      <header class="results-header">
-        <h1>13th Age Feats</h1>
+      <!-- Unified sticky header -->
+      <header id="sticky-header">
+        <div class="header-left">
+          <h1 id="page-title">13th Age Feats</h1>
+          <button id="advanced-filter-btn" class="primary-btn">Advanced Filters</button>
+          <button id="reset-advanced-btn" class="muted-btn" title="Reset modal/advanced filters">Reset Modal Filters</button>
+        </div>
         <div id="active-filters" aria-live="polite"></div>
       </header>
 
+      <!-- Results area -->
       <section id="results-area">
         <div id="results-container"></div>
       </section>
     </main>
+  </div>
+
+  <!-- Advanced Filter Modal -->
+  <div id="advanced-filter-modal" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="close-modal" aria-label="Close">&times;</button>
+      <h2 id="modal-title">Advanced Filters</h2>
+
+      <div id="advanced-filter-container">
+        <!-- dynamic table will be injected here -->
+      </div>
+
+      <div class="modal-bottom">
+        <div class="level-filters">
+          <div>
+            <h4>Spell Level</h4>
+            <div id="modal-spelllevel-options"></div>
+          </div>
+          <div>
+            <h4>Feature Level</h4>
+            <div id="modal-featurelevel-options"></div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="apply-advanced-filters" class="primary-btn">Apply Filters</button>
+          <button id="clear-advanced-filters" class="muted-btn">Clear</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>
