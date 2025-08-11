@@ -1,8 +1,7 @@
-/* Basic layout */
+/* Basic layout and reset */
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; background:#fafafa; color:#222; }
-
-#app-container { display: block; }
+#app-container { display:block; }
 
 /* ---------- SIDEBAR (fixed, independent scroll) ---------- */
 #sidebar {
@@ -10,100 +9,99 @@ body { margin: 0; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; bac
   left: 0;
   top: 0;
   bottom: 0;
-  width: 300px;             /* adjust width if desired */
+  width: 300px;
   padding: 16px;
-  background: #2f2f36;
+  background: #222428;
   color: #fff;
-  overflow-y: auto;         /* inner scroll for long lists */
+  overflow-y: auto;
   border-right: 1px solid rgba(0,0,0,0.12);
 }
 
-/* Reset button */
 .reset-btn {
-  display:block;
-  width:100%;
-  margin-bottom:12px;
-  padding:8px;
-  background:#c0392b;
-  color:#fff;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+  display:block; width:100%; margin-bottom:12px; padding:8px; background:#c0392b; color:#fff; border:none; border-radius:6px; cursor:pointer;
 }
 .reset-btn:hover { background:#a62b22; }
 
 /* Accordion */
 .accordion { margin-bottom: 12px; }
 .acc-header {
-  margin: 0 0 8px;
-  padding: 8px;
-  background: #3b3b42;
-  color: white;
-  cursor: pointer;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  margin: 0 0 8px; padding: 8px; background: #33363a; color: white; cursor: pointer; border-radius: 6px; font-size: 0.95rem;
 }
-.accordion.open .acc-header { background: #444; }
+.accordion.open .acc-header { background: #44484c; }
 
-/* Content: one checkbox per line */
-.accordion .accordion-content {
-  display: block; /* default open because we add .open in markup */
-  padding: 6px 8px;
-}
-.accordion .accordion-content label {
-  display: block;
-  margin: 6px 0;
-  color: #eaeaea;
-  font-size: 0.92rem;
-}
-.accordion .accordion-content input[type="checkbox"] {
-  margin-right: 8px;
-}
+.accordion .accordion-content { display:block; padding:6px 8px; }
+.accordion .accordion-content label { display:block; margin:6px 0; color:#e6e6e6; font-size:0.92rem; }
+.accordion .accordion-content input[type="checkbox"] { margin-right:8px; }
 
-/* ---------- MAIN (push to the right so sidebar doesn't overlap) ---------- */
-#main-content {
-  margin-left: 320px; /* must be >= sidebar width + padding */
-  padding: 24px;
-}
+/* ---------- MAIN (pushed right) ---------- */
+#main-content { margin-left: 320px; padding: 20px; }
 
-/* Results header */
-.results-header {
-  display:flex;
-  align-items:center;
-  gap:16px;
-  justify-content:space-between;
+/* Sticky unified header */
+#sticky-header {
+  position: sticky; top: 0; z-index: 6; background:#fff;
+  border-bottom:1px solid #e6e6e6; padding:12px 8px; display:flex; flex-direction:column; gap:8px;
 }
+.header-left { display:flex; gap:12px; align-items:center; }
+#page-title { margin:0; font-size:1.4rem; }
 
-/* Active filter pills area */
-#active-filters { margin-left:auto; font-size:0.9rem; color:#444; }
+/* Buttons */
+.primary-btn { padding:6px 12px; background:#007acc; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+.primary-btn:hover { background:#0062a3; }
+.muted-btn { padding:6px 10px; background:#efefef; color:#333; border:none; border-radius:6px; cursor:pointer; }
+.muted-btn:hover { background:#e0e0e0; }
+
+/* Active filter pills */
+#active-filters { display:flex; gap:8px; flex-wrap:wrap; }
+.filter-pill { display:flex; align-items:center; gap:8px; padding:6px 10px; background:#e9f0ff; color:#032f57; border-radius:999px; font-size:0.9rem; cursor:pointer; }
+.filter-pill .pill-x { font-weight:bold; color:#444; }
 
 /* ---------- RESULTS ---------- */
-#results-container {
-  display:flex;
-  flex-direction:column;
-  gap: 14px;
-  margin-top: 10px;
-}
-
-/* Card */
-.feat-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-}
-.feat-card h3 { margin: 0 0 6px; font-size: 1.15rem; }
-.feat-meta { color:#666; font-size:0.9rem; margin-bottom:8px; }
-.feat-description p { margin: 8px 0; line-height:1.45; }
-
-/* Tag pills */
+#results-container { display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+.feat-card { background:#fff; border-radius:8px; padding:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+.feat-card h3 { margin:0 0 6px; font-size:1.1rem; }
+.feat-meta { color:#666; font-size:0.92rem; margin-bottom:8px; }
+.feat-description p { margin:8px 0; line-height:1.45; }
 .tag { display:inline-block; background:#eee; color:#333; padding:4px 8px; border-radius:999px; margin-right:6px; font-size:0.82rem; }
 
-/* Disabled look for checkboxes when we implement it later */
-.checkbox-disabled { color:#888; opacity:0.6; pointer-events:none; }
+/* ---------- MODAL ---------- */
+.modal { display:none; position:fixed; z-index:30; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.45); }
+.modal-content { background:#fff; margin:40px auto; padding:18px; border-radius:8px; width:92%; max-width:1100px; position:relative; }
+.close-modal { position:absolute; right:12px; top:8px; font-size:22px; border:none; background:transparent; cursor:pointer; }
 
-/* Responsive */
-@media (max-width:900px){
+/* Modal table layout: flexible grid of 6 columns, but columns shown depend on data */
+.adv-grid {
+  display:grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap:10px;
+  margin:6px 0 12px 0;
+  align-items:start;
+}
+.adv-header { grid-column: span 4; text-align:center; font-weight:700; background:#f3f6fb; padding:6px; border-radius:6px; }
+.adv-header.ancestry { grid-column: span 2; }
+.adv-subheading { font-weight:700; padding:6px 0; }
+.adv-col { border:1px solid #e9eef6; padding:6px; border-radius:6px; min-height:40px; background:#fff; }
+.group-box { border:1px dashed #cfd8e6; padding:6px; margin:6px 0; border-radius:6px; background:#fbfcff; }
+
+/* Spell/Feature level area */
+.modal-bottom { display:flex; justify-content:space-between; gap:20px; align-items:center; margin-top:12px; }
+.level-filters { display:flex; gap:20px; }
+.level-filters h4 { margin:0 0 6px 0; font-size:0.95rem; }
+.level-filters div { display:flex; gap:6px; flex-direction:column; max-width:320px; }
+
+/* Modal actions */
+.modal-actions { display:flex; gap:10px; margin-left:auto; }
+.modal-actions button { padding:6px 12px; border-radius:6px; }
+
+/* disabled style for modal checkboxes when empty */
+.modal-disabled { opacity:0.45; pointer-events:none; color:#666; }
+
+/* responsive */
+@media (max-width:1100px) {
+  .adv-grid { grid-template-columns: repeat(3, 1fr); }
+  .adv-header { grid-column: span 2; }
+  .adv-header.ancestry { grid-column: span 1; }
+}
+@media (max-width:700px) {
   #sidebar { position: relative; width:100%; height:auto; border-right:none; }
-  #main-content { margin-left: 0; padding: 12px; }
+  #main-content { margin-left: 0; padding:12px; }
 }
