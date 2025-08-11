@@ -340,11 +340,11 @@
       },
       {
         "tier": "Adventurer",
-        "description": "\"(Expanded) Whenever you score a critical hit against a staggered enemy, you may immediately make a basic melee attack on them as a free action.\""
+        "description": "\"Whenever you score a critical hit against a staggered enemy, you may immediately make a basic melee attack on them as a free action.\""
       },
       {
         "tier": "Epic",
-        "description": "\"(Expanded) Whenever one of your Slayer attacks drops a non-mook enemy to 0 hp, choose to lower either the AC, PD, or MD of all nearby enemies by the escalation die value until the end of the battle.\""
+        "description": "\"Whenever one of your Slayer attacks drops a non-mook enemy to 0 hp, choose to lower either the AC, PD, or MD of all nearby enemies by the escalation die value until the end of the battle.\""
       }
     ]
   },
@@ -21957,5 +21957,4 @@
       }
     ]
   }
-
 ]
