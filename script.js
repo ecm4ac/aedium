@@ -420,4 +420,279 @@ function buildModalOptions() {
   const canonicalClassOrder = ['Feature','Talent','Multiclass','Spell'];
   const classCols = [];
   canonicalClassOrder.forEach(k => { 
-    if (classGroups[k] && classGroups[k].
+    if (classGroups[k] && classGroups[k].length > 0) {
+      classCols.push({name: k, items: classGroups[k]});
+    }
+  });
+  // include any other class groups after canonical
+  Object.keys(classGroups).forEach(k => { 
+    if (!canonicalClassOrder.includes(k)) {
+      classCols.push({name: k, items: classGroups[k]}); 
+    }
+  });
+  // limit to 4 columns
+  const classColsFinal = classCols.slice(0,4);
+
+  // ancestry columns (canonical order Trait, Lineage)
+  const canonicalAncOrder = ['Trait','Lineage'];
+  const ancCols = [];
+  canonicalAncOrder.forEach(k => { 
+    if (ancestryGroups[k] && ancestryGroups[k].length > 0) {
+      ancCols.push({name: k, items: ancestryGroups[k]});
+    }
+  });
+  Object.keys(ancestryGroups).forEach(k => { 
+    if (!canonicalAncOrder.includes(k)) {
+      ancCols.push({name: k, items: ancestryGroups[k]}); 
+    }
+  });
+  const ancColsFinal = ancCols.slice(0,2);
+
+  // Build grid headers
+  const grid = document.createElement('div');
+  grid.className = 'adv-grid';
+  
+  const totalCols = classColsFinal.length + ancColsFinal.length;
+  if (totalCols === 0) {
+    container.innerHTML = '<p>No items available for advanced filtering with current selection.</p>';
+    buildLevelFilters(data);
+    return;
+  }
+  
+  grid.style.gridTemplateColumns = `repeat(${totalCols}, 1fr)`;
+
+  // If there are class columns, add a Class header spanning their columns
+  if (classColsFinal.length) {
+    const header = document.createElement('div');
+    header.className = 'adv-header';
+    header.style.gridColumn = `span ${classColsFinal.length}`;
+    header.textContent = 'Class';
+    grid.appendChild(header);
+  }
+  // add ancestry header if present
+  if (ancColsFinal.length) {
+    const headerA = document.createElement('div');
+    headerA.className = 'adv-header ancestry';
+    headerA.style.gridColumn = `span ${ancColsFinal.length}`;
+    headerA.textContent = 'Ancestry';
+    grid.appendChild(headerA);
+  }
+
+  // Now add sub-headings row (group names) for class cols and ancestry cols
+  classColsFinal.forEach(col => {
+    const sub = document.createElement('div');
+    sub.className = 'adv-subheading';
+    sub.textContent = col.name;
+    grid.appendChild(sub);
+  });
+  ancColsFinal.forEach(col => {
+    const sub = document.createElement('div');
+    sub.className = 'adv-subheading';
+    sub.textContent = col.name;
+    grid.appendChild(sub);
+  });
+
+  // Fill each class column with standalone feats (no parentTrait) then grouped parentTrait boxes
+  classColsFinal.forEach(col => {
+    const cell = document.createElement('div');
+    cell.className = 'adv-col';
+    
+    // standalone items
+    const standalone = col.items.filter(f => !f.parentTrait);
+    standalone.forEach(f => {
+      const id = `modal-child-${f.id}`;
+      const lbl = document.createElement('label');
+      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
+      cell.appendChild(lbl);
+    });
+
+    // group by parentTrait
+    const grouped = {};
+    col.items.filter(f => f.parentTrait).forEach(f => {
+      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
+      grouped[f.parentTrait].push(f);
+    });
+
+    Object.keys(grouped).forEach(pt => {
+      const box = document.createElement('div');
+      box.className = 'group-box';
+      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
+      const header = document.createElement('div');
+      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
+      box.appendChild(header);
+
+      grouped[pt].forEach(f => {
+        const id = `modal-child-${f.id}`;
+        const childLbl = document.createElement('label');
+        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
+        box.appendChild(childLbl);
+      });
+
+      cell.appendChild(box);
+    });
+
+    grid.appendChild(cell);
+  });
+
+  // Fill each ancestry column similarly
+  ancColsFinal.forEach(col => {
+    const cell = document.createElement('div');
+    cell.className = 'adv-col';
+    
+    const standalone = col.items.filter(f => !f.parentTrait);
+    standalone.forEach(f => {
+      const id = `modal-child-${f.id}`;
+      const lbl = document.createElement('label');
+      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
+      cell.appendChild(lbl);
+    });
+
+    const grouped = {};
+    col.items.filter(f => f.parentTrait).forEach(f => {
+      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
+      grouped[f.parentTrait].push(f);
+    });
+
+    Object.keys(grouped).forEach(pt => {
+      const box = document.createElement('div');
+      box.className = 'group-box';
+      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
+      const header = document.createElement('div');
+      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
+      box.appendChild(header);
+
+      grouped[pt].forEach(f => {
+        const id = `modal-child-${f.id}`;
+        const childLbl = document.createElement('label');
+        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
+        box.appendChild(childLbl);
+      });
+
+      cell.appendChild(box);
+    });
+
+    grid.appendChild(cell);
+  });
+
+  container.appendChild(grid);
+  
+  // Build level filters
+  buildLevelFilters(data);
+
+  // Wire parent <-> children toggle behavior in modal
+  wireModalParentChildBehavior();
+
+  // Pre-check UI for already-applied advancedState (if any)
+  precheckModalFromAdvancedState();
+}
+
+function buildLevelFilters(data) {
+  // Build Spell Level and Feature Level checkboxes (1st,3rd,5th,7th,9th)
+  const spellContainer = document.getElementById('modal-spelllevel-options');
+  const featureContainer = document.getElementById('modal-featurelevel-options');
+  const levels = ['1st','3rd','5th','7th','9th'];
+  spellContainer.innerHTML = '';
+  featureContainer.innerHTML = '';
+
+  // Determine which levels are present in the data
+  const presentSpellLevels = new Set();
+  const presentFeatureLevels = new Set();
+  data.forEach(f => {
+    if (f.spellLevel) presentSpellLevels.add(f.spellLevel);
+    if (f.featureLevel) presentFeatureLevels.add(f.featureLevel);
+  });
+
+  levels.forEach(lv => {
+    const sId = `modal-spell-${lv}`;
+    const fId = `modal-feature-${lv}`;
+    const sLbl = document.createElement('label');
+    sLbl.innerHTML = `<input type="checkbox" class="modal-spelllevel" value="${lv}" id="${sId}"> ${lv}`;
+    const fLbl = document.createElement('label');
+    fLbl.innerHTML = `<input type="checkbox" class="modal-featurelevel" value="${lv}" id="${fId}"> ${lv}`;
+
+    // gray out if not present
+    if (!presentSpellLevels.has(lv)) sLbl.classList.add('modal-disabled');
+    if (!presentFeatureLevels.has(lv)) fLbl.classList.add('modal-disabled');
+
+    spellContainer.appendChild(sLbl);
+    featureContainer.appendChild(fLbl);
+  });
+}
+
+/* parent checkbox toggles child checkboxes */
+function wireModalParentChildBehavior() {
+  document.querySelectorAll('.modal-parent').forEach(parentCb => {
+    parentCb.addEventListener('change', () => {
+      const parent = parentCb.dataset.parent;
+      const kids = document.querySelectorAll(`.modal-child[data-parent="${escapeSelector(parent)}"]`);
+      kids.forEach(k => k.checked = parentCb.checked);
+    });
+  });
+
+  // if any child toggled, reflect on parent checkbox
+  document.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('modal-child')) return;
+    const parent = e.target.dataset.parent;
+    if (!parent) return;
+    const parentCb = document.querySelector(`.modal-parent[data-parent="${escapeSelector(parent)}"]`);
+    if (!parentCb) return;
+    const kids = Array.from(document.querySelectorAll(`.modal-child[data-parent="${escapeSelector(parent)}"]`));
+    parentCb.checked = kids.length && kids.every(k => k.checked);
+  });
+}
+
+/* pre-check modal elements if advancedState already has these selections applied */
+function precheckModalFromAdvancedState() {
+  // parentTraits
+  advancedState.parentTraits.forEach(pt => {
+    const parentEl = document.querySelector(`.modal-parent[data-parent="${escapeSelector(pt)}"]`);
+    if (parentEl) parentEl.checked = true;
+  });
+  // childIds
+  advancedState.childIds.forEach(cid => {
+    const childEl = document.querySelector(`.modal-child[data-id="${escapeSelector(cid)}"]`);
+    if (childEl) childEl.checked = true;
+  });
+  // spellLevels
+  advancedState.spellLevels.forEach(sl => {
+    const el = document.querySelector(`.modal-spelllevel[value="${escapeSelector(sl)}"]`);
+    if (el) el.checked = true;
+  });
+  // featureLevels
+  advancedState.featureLevels.forEach(fl => {
+    const el = document.querySelector(`.modal-featurelevel[value="${escapeSelector(fl)}"]`);
+    if (el) el.checked = true;
+  });
+}
+
+/* clear only modal selection controls (but don't clear applied advancedState) */
+function clearModalSelections() {
+  document.querySelectorAll('#advanced-filter-modal .modal-child, #advanced-filter-modal .modal-parent').forEach(i => i.checked = false);
+  document.querySelectorAll('#advanced-filter-modal .modal-spelllevel, #advanced-filter-modal .modal-featurelevel').forEach(i => i.checked = false);
+}
+
+/* read modal selections and write into advancedState (applied) */
+function readModalSelectionsAndApply() {
+  // clear current advancedState
+  advancedState.parentTraits.clear();
+  advancedState.childIds.clear();
+  advancedState.spellLevels.clear();
+  advancedState.featureLevels.clear();
+
+  // parents
+  document.querySelectorAll('.modal-parent:checked').forEach(cb => {
+    advancedState.parentTraits.add(cb.dataset.parent);
+  });
+  // children (individual feat ids)
+  document.querySelectorAll('.modal-child:checked').forEach(cb => {
+    advancedState.childIds.add(cb.dataset.id);
+  });
+  // spelllevels
+  document.querySelectorAll('.modal-spelllevel:checked').forEach(cb => advancedState.spellLevels.add(cb.value));
+  // featurelevels
+  document.querySelectorAll('.modal-featurelevel:checked').forEach(cb => advancedState.featureLevels.add(cb.value));
+}
+
+/* -------------------------
+   End of file
+   ------------------------- */
