@@ -626,34 +626,118 @@ function readModalSelectionsAndApply() {
    Keep modal options in sync with primary scope (disable if no matching items)
    - Called whenever sidebar filters change or data changes
    ------------------------- */
-function buildAndDisableModalOptions() {
-  // If modal is open, re-build its content; if not open, still build prepared content for when opened
-  const modal = document.getElementById('advanced-filter-modal');
-  const isOpen = modal.style.display === 'block';
-  // rebuild the modal content (safe both if open or not)
-  buildAndDisableModalOptions_inner();
-  if (!isOpen) {
-    // close modal remains closed
-    modal.style.display = 'none';
-  }
-}
+function buildAndDisableModalOptions(feats) {
+    const modalContainer = document.getElementById("modal-options");
+    modalContainer.innerHTML = ""; // Clear previous contents
 
-function buildAndDisableModalOptions_inner() {
-  // reuse builder to recreate modal options
-  const container = document.getElementById('advanced-filter-container');
-  // we will rebuild using the currentPrimaryFiltered list (or full if empty)
-  // call the builder function
-  // it's safe to call it repeatedly
-  currentPrimaryFiltered = currentPrimaryFiltered || [];
-  // use same builder as above
-  // to avoid duplication we'll just call the same function name (exists above)
-  // but we need to pass-through currentPrimaryFiltered; the builder references that variable already
-  // So simply call:
-  buildAndDisableModalOptions(); // this will rebuild - note: recursive but safe since function reassigns; to avoid infinite recursion, we wrap:
-  // Actually avoid reentrancy: instead, to keep simple, just call the builder defined earlier by reusing it:
-  // (But we've already implemented buildAndDisableModalOptions() above as the full builder)
-}
+    // Example structure: Class groups
+    const classGroups = ["Feature", "Talent", "Multiclass", "Spell"];
+    const ancestryGroups = ["Trait", "Lineage"];
+    const spellLevels = ["1st", "3rd", "5th", "7th", "9th"];
+    const featureLevels = ["1st", "3rd", "5th", "7th", "9th"];
 
+    // Create a table element
+    const table = document.createElement("table");
+    table.classList.add("modal-table");
+
+    // Header row
+    const headerRow = document.createElement("tr");
+    const classHeader = document.createElement("th");
+    classHeader.colSpan = classGroups.length;
+    classHeader.innerText = "Class";
+    headerRow.appendChild(classHeader);
+
+    const ancestryHeader = document.createElement("th");
+    ancestryHeader.colSpan = ancestryGroups.length;
+    ancestryHeader.innerText = "Ancestry";
+    headerRow.appendChild(ancestryHeader);
+
+    table.appendChild(headerRow);
+
+    // Group names row
+    const groupRow = document.createElement("tr");
+    [...classGroups, ...ancestryGroups].forEach(g => {
+        const th = document.createElement("th");
+        th.innerText = g;
+        groupRow.appendChild(th);
+    });
+    table.appendChild(groupRow);
+
+    // Find all unique items for each group from feats
+    const groupedOptions = {};
+    [...classGroups, ...ancestryGroups].forEach(g => groupedOptions[g] = new Set());
+
+    feats.forEach(f => {
+        if (classGroups.includes(f.group)) groupedOptions[f.group].add(f.parentTrait || f.name);
+        if (ancestryGroups.includes(f.group)) groupedOptions[f.group].add(f.parentTrait || f.name);
+    });
+
+    // Determine longest column count for looping
+    const maxRows = Math.max(...Object.values(groupedOptions).map(set => set.size));
+
+    // Build rows
+    for (let i = 0; i < maxRows; i++) {
+        const row = document.createElement("tr");
+        [...classGroups, ...ancestryGroups].forEach(g => {
+            const td = document.createElement("td");
+            const option = Array.from(groupedOptions[g])[i];
+            if (option) {
+                const label = document.createElement("label");
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = option;
+
+                // Disable if no feats match this option
+                const hasMatch = feats.some(f => 
+                    (f.group === g && (f.parentTrait === option || f.name === option))
+                );
+                checkbox.disabled = !hasMatch;
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(option));
+                td.appendChild(label);
+            }
+            row.appendChild(td);
+        });
+        table.appendChild(row);
+    }
+
+    modalContainer.appendChild(table);
+
+    // Spell level and feature level filters can be appended below the table
+    const levelFilters = document.createElement("div");
+    levelFilters.classList.add("level-filters");
+
+    const spellDiv = document.createElement("div");
+    spellDiv.innerHTML = `<h4>Spell Levels</h4>`;
+    spellLevels.forEach(level => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = level;
+        checkbox.disabled = !feats.some(f => f.spellLevel === level);
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(level));
+        spellDiv.appendChild(label);
+    });
+
+    const featureDiv = document.createElement("div");
+    featureDiv.innerHTML = `<h4>Feature Levels</h4>`;
+    featureLevels.forEach(level => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = level;
+        checkbox.disabled = !feats.some(f => f.featureLevel === level);
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(level));
+        featureDiv.appendChild(label);
+    });
+
+    levelFilters.appendChild(spellDiv);
+    levelFilters.appendChild(featureDiv);
+    modalContainer.appendChild(levelFilters);
+}
 /* -------------------------
    End of file
    ------------------------- */
