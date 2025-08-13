@@ -197,17 +197,14 @@ function applyFilters() {
   // Save primary filtered set for modal generation
   currentPrimaryFiltered = unionMatches;
 
-  // Now apply tier filter (must have at least one matching tier entry)
-  let afterTier = unionMatches.filter(f => {
-    if (!tierFilters.length) return true;
-    if (!Array.isArray(f.feats)) return false;
-    return f.feats.some(ft => tierFilters.includes(ft.tier));
-  });
+  // For tier filtering, we don't filter out entire feats, just filter the tier entries within each feat
+  // So we keep all unionMatches and let renderResults handle tier filtering
+  let afterTier = unionMatches;
 
   // apply advanced filters (if any are applied) - advanced selection acts as a union across chosen advanced items
   const final = applyAdvancedToSet(afterTier);
 
-  renderResults(final);
+  renderResults(final, tierFilters);
   renderActivePills();
 }
 
@@ -243,7 +240,7 @@ function applyAdvancedToSet(candidates) {
 /* -------------------------
    Render results
    ------------------------- */
-function renderResults(results) {
+function renderResults(results, tierFilters = []) {
   const container = document.getElementById('results-container');
   container.innerHTML = '';
 
@@ -271,10 +268,23 @@ function renderResults(results) {
     if (f.spellLevel) metaParts.push(`${f.spellLevel} Level`);
 
     // Build tier descriptions (sorted canonical order)
+    // Filter by selected tiers if any are selected
     let descHtml = '';
     if (Array.isArray(f.feats)) {
       const canonical = ['Adventurer','Champion','Epic'];
-      const sorted = [...f.feats].sort((a,b)=> canonical.indexOf(a.tier)-canonical.indexOf(b.tier));
+      let featsToShow = f.feats;
+      
+      // If tier filters are selected, only show matching tiers
+      if (tierFilters.length > 0) {
+        featsToShow = f.feats.filter(ft => tierFilters.includes(ft.tier));
+      }
+      
+      // If no tiers match the filter, skip this feat entirely
+      if (tierFilters.length > 0 && featsToShow.length === 0) {
+        return; // Skip rendering this feat card
+      }
+      
+      const sorted = [...featsToShow].sort((a,b)=> canonical.indexOf(a.tier)-canonical.indexOf(b.tier));
       sorted.forEach(e => {
         const desc = String(e.description || '').replace(/^"|"$/g,'').trim();
         descHtml += `<p><strong>${e.tier}:</strong> ${desc}</p>`;
@@ -448,133 +458,149 @@ function buildModalOptions() {
   });
   const ancColsFinal = ancCols.slice(0,2);
 
-  // Build grid headers
-  const grid = document.createElement('div');
-  grid.className = 'adv-grid';
+  // Build stacked layout instead of side-by-side
+  const container = document.createElement('div');
+  container.className = 'adv-container';
   
-  const totalCols = classColsFinal.length + ancColsFinal.length;
-  if (totalCols === 0) {
-    container.innerHTML = '<p>No items available for advanced filtering with current selection.</p>';
-    buildLevelFilters(data);
-    return;
-  }
-  
-  grid.style.gridTemplateColumns = `repeat(${totalCols}, 1fr)`;
-
-  // If there are class columns, add a Class header spanning their columns
-  if (classColsFinal.length) {
-    const header = document.createElement('div');
-    header.className = 'adv-header';
-    header.style.gridColumn = `span ${classColsFinal.length}`;
-    header.textContent = 'Class';
-    grid.appendChild(header);
-  }
-  // add ancestry header if present
-  if (ancColsFinal.length) {
-    const headerA = document.createElement('div');
-    headerA.className = 'adv-header ancestry';
-    headerA.style.gridColumn = `span ${ancColsFinal.length}`;
-    headerA.textContent = 'Ancestry';
-    grid.appendChild(headerA);
-  }
-
-  // Now add sub-headings row (group names) for class cols and ancestry cols
-  classColsFinal.forEach(col => {
-    const sub = document.createElement('div');
-    sub.className = 'adv-subheading';
-    sub.textContent = col.name;
-    grid.appendChild(sub);
-  });
-  ancColsFinal.forEach(col => {
-    const sub = document.createElement('div');
-    sub.className = 'adv-subheading';
-    sub.textContent = col.name;
-    grid.appendChild(sub);
-  });
-
-  // Fill each class column with standalone feats (no parentTrait) then grouped parentTrait boxes
-  classColsFinal.forEach(col => {
-    const cell = document.createElement('div');
-    cell.className = 'adv-col';
+  // Build Class section if there are class items
+  if (classColsFinal.length > 0) {
+    const classSection = document.createElement('div');
+    classSection.className = 'adv-section';
     
-    // standalone items
-    const standalone = col.items.filter(f => !f.parentTrait);
-    standalone.forEach(f => {
-      const id = `modal-child-${f.id}`;
-      const lbl = document.createElement('label');
-      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
-      cell.appendChild(lbl);
+    // Class header
+    const classHeader = document.createElement('div');
+    classHeader.className = 'adv-section-header';
+    classHeader.textContent = 'Class Filters';
+    classSection.appendChild(classHeader);
+    
+    // Class grid
+    const classGrid = document.createElement('div');
+    classGrid.className = 'adv-grid';
+    classGrid.style.gridTemplateColumns = `repeat(${classColsFinal.length}, 1fr)`;
+    
+    // Class subheadings
+    classColsFinal.forEach(col => {
+      const sub = document.createElement('div');
+      sub.className = 'adv-subheading';
+      sub.textContent = col.name;
+      classGrid.appendChild(sub);
     });
-
-    // group by parentTrait
-    const grouped = {};
-    col.items.filter(f => f.parentTrait).forEach(f => {
-      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
-      grouped[f.parentTrait].push(f);
-    });
-
-    Object.keys(grouped).forEach(pt => {
-      const box = document.createElement('div');
-      box.className = 'group-box';
-      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
-      const header = document.createElement('div');
-      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
-      box.appendChild(header);
-
-      grouped[pt].forEach(f => {
+    
+    // Class columns
+    classColsFinal.forEach(col => {
+      const cell = document.createElement('div');
+      cell.className = 'adv-col';
+      
+      // standalone items
+      const standalone = col.items.filter(f => !f.parentTrait);
+      standalone.forEach(f => {
         const id = `modal-child-${f.id}`;
-        const childLbl = document.createElement('label');
-        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
-        box.appendChild(childLbl);
+        const lbl = document.createElement('label');
+        lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
+        cell.appendChild(lbl);
       });
 
-      cell.appendChild(box);
-    });
-
-    grid.appendChild(cell);
-  });
-
-  // Fill each ancestry column similarly
-  ancColsFinal.forEach(col => {
-    const cell = document.createElement('div');
-    cell.className = 'adv-col';
-    
-    const standalone = col.items.filter(f => !f.parentTrait);
-    standalone.forEach(f => {
-      const id = `modal-child-${f.id}`;
-      const lbl = document.createElement('label');
-      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
-      cell.appendChild(lbl);
-    });
-
-    const grouped = {};
-    col.items.filter(f => f.parentTrait).forEach(f => {
-      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
-      grouped[f.parentTrait].push(f);
-    });
-
-    Object.keys(grouped).forEach(pt => {
-      const box = document.createElement('div');
-      box.className = 'group-box';
-      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
-      const header = document.createElement('div');
-      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
-      box.appendChild(header);
-
-      grouped[pt].forEach(f => {
-        const id = `modal-child-${f.id}`;
-        const childLbl = document.createElement('label');
-        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
-        box.appendChild(childLbl);
+      // group by parentTrait
+      const grouped = {};
+      col.items.filter(f => f.parentTrait).forEach(f => {
+        if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
+        grouped[f.parentTrait].push(f);
       });
 
-      cell.appendChild(box);
+      Object.keys(grouped).forEach(pt => {
+        const box = document.createElement('div');
+        box.className = 'group-box';
+        const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
+        const header = document.createElement('div');
+        header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
+        box.appendChild(header);
+
+        grouped[pt].forEach(f => {
+          const id = `modal-child-${f.id}`;
+          const childLbl = document.createElement('label');
+          childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
+          box.appendChild(childLbl);
+        });
+
+        cell.appendChild(box);
+      });
+
+      classGrid.appendChild(cell);
     });
+    
+    classSection.appendChild(classGrid);
+    container.appendChild(classSection);
+  }
+  
+  // Build Ancestry section if there are ancestry items
+  if (ancColsFinal.length > 0) {
+    const ancestrySection = document.createElement('div');
+    ancestrySection.className = 'adv-section';
+    
+    // Ancestry header
+    const ancestryHeader = document.createElement('div');
+    ancestryHeader.className = 'adv-section-header ancestry';
+    ancestryHeader.textContent = 'Ancestry Filters';
+    ancestrySection.appendChild(ancestryHeader);
+    
+    // Ancestry grid
+    const ancestryGrid = document.createElement('div');
+    ancestryGrid.className = 'adv-grid';
+    ancestryGrid.style.gridTemplateColumns = `repeat(${ancColsFinal.length}, 1fr)`;
+    
+    // Ancestry subheadings
+    ancColsFinal.forEach(col => {
+      const sub = document.createElement('div');
+      sub.className = 'adv-subheading';
+      sub.textContent = col.name;
+      ancestryGrid.appendChild(sub);
+    });
+    
+    // Ancestry columns
+    ancColsFinal.forEach(col => {
+      const cell = document.createElement('div');
+      cell.className = 'adv-col';
+      
+      const standalone = col.items.filter(f => !f.parentTrait);
+      standalone.forEach(f => {
+        const id = `modal-child-${f.id}`;
+        const lbl = document.createElement('label');
+        lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
+        cell.appendChild(lbl);
+      });
 
-    grid.appendChild(cell);
-  });
+      const grouped = {};
+      col.items.filter(f => f.parentTrait).forEach(f => {
+        if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
+        grouped[f.parentTrait].push(f);
+      });
 
-  container.appendChild(grid);
+      Object.keys(grouped).forEach(pt => {
+        const box = document.createElement('div');
+        box.className = 'group-box';
+        const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
+        const header = document.createElement('div');
+        header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
+        box.appendChild(header);
+
+        grouped[pt].forEach(f => {
+          const id = `modal-child-${f.id}`;
+          const childLbl = document.createElement('label');
+          childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
+          box.appendChild(childLbl);
+        });
+
+        cell.appendChild(box);
+      });
+
+      ancestryGrid.appendChild(cell);
+    });
+    
+    ancestrySection.appendChild(ancestryGrid);
+    container.appendChild(ancestrySection);
+  }
+
+  document.getElementById('advanced-filter-container').appendChild(container);
   
   // Build level filters
   buildLevelFilters(data);
