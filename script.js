@@ -738,6 +738,7 @@ function buildAndDisableModalOptions(feats) {
     levelFilters.appendChild(featureDiv);
     modalContainer.appendChild(levelFilters);
 }
+
 /* -------------------------
    End of file
    ------------------------- */
