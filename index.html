@@ -17,7 +17,8 @@
       <div class="active-filters" id="active-filters">
         <!-- Pills will be generated here dynamically -->
       </div>
-      <button id="advancedFilterBtn">Advanced Filters</button>
+      <button id="advanced-filter-btn">Advanced Filters</button>
+      <button id="reset-advanced-btn">Reset Advanced</button>
     </div>
   </header>
 
@@ -25,28 +26,79 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div id="filter-groups">
-        <!-- Filter accordions will be built here dynamically by script.js -->
+        <!-- Type Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Type</div>
+          <div class="acc-content" id="type-filters">
+            <!-- Type checkboxes will be generated here -->
+          </div>
+        </div>
+        
+        <!-- Ancestry Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Ancestry</div>
+          <div class="acc-content" id="ancestry-filters">
+            <!-- Ancestry checkboxes will be generated here -->
+          </div>
+        </div>
+        
+        <!-- Class Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Class</div>
+          <div class="acc-content" id="class-filters">
+            <!-- Class checkboxes will be generated here -->
+          </div>
+        </div>
+        
+        <!-- Tier Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Tier</div>
+          <div class="acc-content" id="tier-filters">
+            <!-- Tier checkboxes will be generated here -->
+          </div>
+        </div>
       </div>
       <button id="reset-filters">Reset All Filters</button>
     </aside>
 
     <!-- Main content -->
-    <main class="main-content" id="results">
-      <p>Make a selection to view feats.</p>
+    <main class="main-content">
+      <div id="results-container">
+        <p>Make a selection to view feats.</p>
+      </div>
     </main>
   </div>
 
   <!-- Advanced Filter Modal -->
-  <div id="advancedFilterModal" class="modal">
+  <div id="advanced-filter-modal" class="modal" aria-hidden="true">
     <div class="modal-content">
-      <span class="close-button">&times;</span>
+      <span class="close-modal">&times;</span>
       <h2>Advanced Filters</h2>
-      <div id="modal-options">
-        <!-- JS will inject advanced filter checkboxes/tables here -->
+      
+      <!-- Dynamic grid container -->
+      <div id="advanced-filter-container">
+        <!-- JS will inject advanced filter grid here -->
       </div>
+      
+      <!-- Level filters -->
+      <div class="level-filters">
+        <div>
+          <h4>Spell Levels</h4>
+          <div id="modal-spelllevel-options">
+            <!-- Spell level checkboxes will be generated here -->
+          </div>
+        </div>
+        <div>
+          <h4>Feature Levels</h4>
+          <div id="modal-featurelevel-options">
+            <!-- Feature level checkboxes will be generated here -->
+          </div>
+        </div>
+      </div>
+      
       <div class="modal-footer">
-        <button id="applyAdvancedFilters">Apply Filters</button>
-        <button id="resetAdvancedFilters">Reset</button>
+        <button id="apply-advanced-filters">Apply Filters</button>
+        <button id="clear-advanced-filters">Clear</button>
       </div>
     </div>
   </div>

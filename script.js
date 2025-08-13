@@ -67,29 +67,59 @@ fetch('feats.json')
    Sidebar population & wiring
    ------------------------- */
 function populateSidebarOptions(data) {
+  // Get containers
+  const typeContainer = document.getElementById('type-filters');
   const ancestryContainer = document.getElementById('ancestry-filters');
   const classContainer = document.getElementById('class-filters');
+  const tierContainer = document.getElementById('tier-filters');
 
+  // Get unique values
+  const types = uniqueFieldValues(data, 'category');
   const ancestries = uniqueFieldValues(data, 'ancestry');
   const classes = uniqueFieldValues(data, 'class');
+  
+  // Get unique tiers from the feats array
+  const tiers = new Set();
+  data.forEach(item => {
+    if (Array.isArray(item.feats)) {
+      item.feats.forEach(feat => {
+        if (feat.tier) tiers.add(feat.tier);
+      });
+    }
+  });
+  const tierArray = Array.from(tiers).sort();
 
+  // Populate Type filters
+  types.forEach(t => {
+    const lbl = document.createElement('label');
+    lbl.innerHTML = `<input type="checkbox" name="Type" value="${t}"> ${t}`;
+    typeContainer.appendChild(lbl);
+  });
+
+  // Populate Ancestry filters
   ancestries.forEach(a => {
     const lbl = document.createElement('label');
     lbl.innerHTML = `<input type="checkbox" name="Ancestry" value="${a}"> ${a}`;
     ancestryContainer.appendChild(lbl);
   });
 
+  // Populate Class filters
   classes.forEach(c => {
     const lbl = document.createElement('label');
     lbl.innerHTML = `<input type="checkbox" name="Class" value="${c}"> ${c}`;
     classContainer.appendChild(lbl);
   });
 
+  // Populate Tier filters
+  tierArray.forEach(t => {
+    const lbl = document.createElement('label');
+    lbl.innerHTML = `<input type="checkbox" name="Tier" value="${t}"> ${t}`;
+    tierContainer.appendChild(lbl);
+  });
+
   // wire all sidebar inputs
   document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => {
-      // when sidebar changes, clear modal selections (not applied) visually but keep applied advancedState
-      buildAndDisableModalOptions(); // so modal options reflect current scope
       applyFilters();
     });
   });
@@ -178,7 +208,6 @@ function applyFilters() {
   const final = applyAdvancedToSet(afterTier);
 
   renderResults(final);
-  buildAndDisableModalOptions(); // keep modal options in sync with current scope
   renderActivePills();
 }
 
@@ -207,7 +236,6 @@ function applyAdvancedToSet(candidates) {
     if (f.spellLevel && advancedState.spellLevels.size && advancedState.spellLevels.has(f.spellLevel)) return true;
     if (f.featureLevel && advancedState.featureLevels.size && advancedState.featureLevels.has(f.featureLevel)) return true;
 
-    // Also, children inside feats array might have tiers etc. We assume spellLevel/featureLevel are at feat level (as per your schema)
     return false;
   });
 }
@@ -283,7 +311,7 @@ function renderActivePills() {
     const vals = getCheckedValues(cat);
     vals.forEach(v => out.appendChild(makePill(`${cat}: ${v}`, () => {
       // uncheck this checkbox and reapply
-      const cb = document.querySelector(`#sidebar input[name="${cat}"][value="${CSS.escape(v)}"]`);
+      const cb = document.querySelector(`#sidebar input[name="${cat}"][value="${escapeSelector(v)}"]`);
       if (cb) cb.checked = false;
       applyFilters();
     })));
@@ -316,6 +344,11 @@ function makePill(text, onClick) {
   return span;
 }
 
+// Helper function to properly escape CSS selectors
+function escapeSelector(str) {
+  return str.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, "\\$&");
+}
+
 /* -------------------------
    ADVANCED MODAL: build dynamic grid & options
    ------------------------- */
@@ -327,12 +360,22 @@ function wireStickyModalButtons() {
   const clearBtn = document.getElementById('clear-advanced-filters');
 
   openBtn.addEventListener('click', () => {
-    buildAndDisableModalOptions(); // build modal from currentPrimaryFiltered
+    buildModalOptions(); // build modal from currentPrimaryFiltered
     modal.style.display = 'block';
     modal.setAttribute('aria-hidden','false');
   });
-  closeBtn.addEventListener('click', () => { modal.style.display = 'none'; modal.setAttribute('aria-hidden','true'); });
-  window.addEventListener('click', (e) => { if (e.target === modal) { modal.style.display='none'; modal.setAttribute('aria-hidden','true'); } });
+  
+  closeBtn.addEventListener('click', () => { 
+    modal.style.display = 'none'; 
+    modal.setAttribute('aria-hidden','true'); 
+  });
+  
+  window.addEventListener('click', (e) => { 
+    if (e.target === modal) { 
+      modal.style.display='none'; 
+      modal.setAttribute('aria-hidden','true'); 
+    } 
+  });
 
   applyBtn.addEventListener('click', () => {
     // read selections from modal and store into advancedState, then applyFilters
@@ -349,14 +392,13 @@ function wireStickyModalButtons() {
 }
 
 /* Build modal content using currentPrimaryFiltered (sidebar scope) */
-function buildAndDisableModalOptions() {
+function buildModalOptions() {
   const container = document.getElementById('advanced-filter-container');
   container.innerHTML = ''; // rebuild
 
   const data = currentPrimaryFiltered.length ? currentPrimaryFiltered : featsData;
 
   // Build lists grouped by category/group/parentTrait
-  // For classes: groups of interest may appear, we'll gather unique groups under Class feats
   const classItems = data.filter(f => f.category === 'Class');
   const ancestryItems = data.filter(f => f.category === 'Ancestry');
 
@@ -374,371 +416,8 @@ function buildAndDisableModalOptions() {
     ancestryGroups[g].push(f);
   });
 
-  // Decide columns: up to 4 class groups and up to 2 ancestry groups.
-  // We will pick canonical class group order if present, else fallback to keys order.
+  // Canonical class group order
   const canonicalClassOrder = ['Feature','Talent','Multiclass','Spell'];
   const classCols = [];
-  canonicalClassOrder.forEach(k => { if (classGroups[k]) classCols.push({name:k,items:classGroups[k]}); });
-  // include any other class groups after canonical
-  Object.keys(classGroups).forEach(k => { if (!canonicalClassOrder.includes(k)) classCols.push({name:k,items:classGroups[k]}); });
-  // limit to 4 columns
-  const classColsFinal = classCols.slice(0,4);
-
-  // ancestry columns (canonical order Trait, Lineage)
-  const canonicalAncOrder = ['Trait','Lineage'];
-  const ancCols = [];
-  canonicalAncOrder.forEach(k => { if (ancestryGroups[k]) ancCols.push({name:k,items:ancestryGroups[k]}); });
-  Object.keys(ancestryGroups).forEach(k => { if (!canonicalAncOrder.includes(k)) ancCols.push({name:k,items:ancestryGroups[k]}); });
-  const ancColsFinal = ancCols.slice(0,2);
-
-  // Build grid headers
-  const grid = document.createElement('div');
-  grid.className = 'adv-grid';
-
-  // If there are class columns, add a Class header spanning their columns
-  if (classColsFinal.length) {
-    const header = document.createElement('div');
-    header.className = 'adv-header';
-    header.style.gridColumn = `span ${classColsFinal.length}`;
-    header.textContent = 'Class';
-    grid.appendChild(header);
-  }
-  // add ancestry header if present
-  if (ancColsFinal.length) {
-    const headerA = document.createElement('div');
-    headerA.className = 'adv-header ancestry';
-    headerA.style.gridColumn = `span ${ancColsFinal.length}`;
-    headerA.textContent = 'Ancestry';
-    grid.appendChild(headerA);
-  }
-
-  // Now add sub-headings row (group names) for class cols and ancestry cols
-  classColsFinal.forEach(col => {
-    const sub = document.createElement('div');
-    sub.className = 'adv-col';
-    sub.innerHTML = `<div class="adv-subheading">${col.name}</div>`;
-    grid.appendChild(sub);
-  });
-  ancColsFinal.forEach(col => {
-    const sub = document.createElement('div');
-    sub.className = 'adv-col';
-    sub.innerHTML = `<div class="adv-subheading">${col.name}</div>`;
-    grid.appendChild(sub);
-  });
-
-  // Fill each class column with standalone feats (no parentTrait) then grouped parentTrait boxes
-  classColsFinal.forEach(col => {
-    const cell = document.createElement('div');
-    cell.className = 'adv-col';
-    // standalone items
-    const standalone = col.items.filter(f => !f.parentTrait);
-    standalone.forEach(f => {
-      const id = `modal-child-${f.id}`;
-      const lbl = document.createElement('label');
-      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
-      cell.appendChild(lbl);
-    });
-
-    // group by parentTrait
-    const grouped = {};
-    col.items.filter(f => f.parentTrait).forEach(f => {
-      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
-      grouped[f.parentTrait].push(f);
-    });
-
-    Object.keys(grouped).forEach(pt => {
-      const box = document.createElement('div');
-      box.className = 'group-box';
-      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
-      const header = document.createElement('div');
-      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
-      box.appendChild(header);
-
-      grouped[pt].forEach(f => {
-        const id = `modal-child-${f.id}`;
-        const childLbl = document.createElement('label');
-        childLbl.style.display = 'block';
-        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
-        box.appendChild(childLbl);
-      });
-
-      cell.appendChild(box);
-    });
-
-    grid.appendChild(cell);
-  });
-
-  // Fill each ancestry column similarly
-  ancColsFinal.forEach(col => {
-    const cell = document.createElement('div');
-    cell.className = 'adv-col';
-    const standalone = col.items.filter(f => !f.parentTrait);
-    standalone.forEach(f => {
-      const id = `modal-child-${f.id}`;
-      const lbl = document.createElement('label');
-      lbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" id="${id}"> ${f.name}`;
-      cell.appendChild(lbl);
-    });
-
-    const grouped = {};
-    col.items.filter(f => f.parentTrait).forEach(f => {
-      if (!grouped[f.parentTrait]) grouped[f.parentTrait] = [];
-      grouped[f.parentTrait].push(f);
-    });
-
-    Object.keys(grouped).forEach(pt => {
-      const box = document.createElement('div');
-      box.className = 'group-box';
-      const ptId = `modal-parent-${pt.replace(/\s+/g,'_')}`;
-      const header = document.createElement('div');
-      header.innerHTML = `<label><input type="checkbox" class="modal-parent" data-parent="${pt}" id="${ptId}"> <strong>${pt}</strong></label>`;
-      box.appendChild(header);
-
-      grouped[pt].forEach(f => {
-        const id = `modal-child-${f.id}`;
-        const childLbl = document.createElement('label');
-        childLbl.style.display = 'block';
-        childLbl.innerHTML = `<input type="checkbox" class="modal-child" data-id="${f.id}" data-parent="${pt}" id="${id}"> ${f.name}`;
-        box.appendChild(childLbl);
-      });
-
-      cell.appendChild(box);
-    });
-
-    grid.appendChild(cell);
-  });
-
-  container.appendChild(grid);
-
-  // Build Spell Level and Feature Level checkboxes (1st,3rd,5th,7th,9th)
-  const spellContainer = document.getElementById('modal-spelllevel-options');
-  const featureContainer = document.getElementById('modal-featurelevel-options');
-  const levels = ['1st','3rd','5th','7th','9th'];
-  spellContainer.innerHTML = '';
-  featureContainer.innerHTML = '';
-
-  // Determine which levels are present in the currentPrimaryFiltered
-  const presentSpellLevels = new Set();
-  const presentFeatureLevels = new Set();
-  (currentPrimaryFiltered.length ? currentPrimaryFiltered : featsData).forEach(f => {
-    if (f.spellLevel) presentSpellLevels.add(f.spellLevel);
-    if (f.featureLevel) presentFeatureLevels.add(f.featureLevel);
-  });
-
-  levels.forEach(lv => {
-    const sId = `modal-spell-${lv}`;
-    const fId = `modal-feature-${lv}`;
-    const sLbl = document.createElement('label');
-    sLbl.innerHTML = `<input type="checkbox" class="modal-spelllevel" value="${lv}" id="${sId}"> ${lv}`;
-    const fLbl = document.createElement('label');
-    fLbl.innerHTML = `<input type="checkbox" class="modal-featurelevel" value="${lv}" id="${fId}"> ${lv}`;
-
-    // gray out if not present
-    if (!presentSpellLevels.has(lv)) sLbl.classList.add('modal-disabled');
-    if (!presentFeatureLevels.has(lv)) fLbl.classList.add('modal-disabled');
-
-    spellContainer.appendChild(sLbl);
-    featureContainer.appendChild(fLbl);
-  });
-
-  // Wire parent <-> children toggle behavior in modal
-  wireModalParentChildBehavior();
-
-  // Pre-check UI for already-applied advancedState (if any)
-  precheckModalFromAdvancedState();
-}
-
-/* parent checkbox toggles child checkboxes */
-function wireModalParentChildBehavior() {
-  document.querySelectorAll('.modal-parent').forEach(parentCb => {
-    parentCb.addEventListener('change', () => {
-      const parent = parentCb.dataset.parent;
-      const kids = document.querySelectorAll(`.modal-child[data-parent="${CSS.escape(parent)}"]`);
-      kids.forEach(k => k.checked = parentCb.checked);
-    });
-  });
-
-  // if any child toggled, reflect on parent checkbox
-  document.addEventListener('change', (e) => {
-    if (!e.target.classList.contains('modal-child')) return;
-    const parent = e.target.dataset.parent;
-    if (!parent) return;
-    const parentCb = document.querySelector(`.modal-parent[data-parent="${CSS.escape(parent)}"]`);
-    if (!parentCb) return;
-    const kids = Array.from(document.querySelectorAll(`.modal-child[data-parent="${CSS.escape(parent)}"]`));
-    parentCb.checked = kids.length && kids.every(k => k.checked);
-  });
-}
-
-/* pre-check modal elements if advancedState already has these selections applied */
-function precheckModalFromAdvancedState() {
-  // parentTraits
-  advancedState.parentTraits.forEach(pt => {
-    const parentEl = document.querySelector(`.modal-parent[data-parent="${CSS.escape(pt)}"]`);
-    if (parentEl) parentEl.checked = true;
-  });
-  // childIds
-  advancedState.childIds.forEach(cid => {
-    const childEl = document.querySelector(`.modal-child[data-id="${CSS.escape(cid)}"]`);
-    if (childEl) childEl.checked = true;
-  });
-  // spellLevels
-  advancedState.spellLevels.forEach(sl => {
-    const el = document.querySelector(`.modal-spelllevel[value="${CSS.escape(sl)}"]`);
-    if (el) el.checked = true;
-  });
-  // featureLevels
-  advancedState.featureLevels.forEach(fl => {
-    const el = document.querySelector(`.modal-featurelevel[value="${CSS.escape(fl)}"]`);
-    if (el) el.checked = true;
-  });
-}
-
-/* clear only modal selection controls (but don't clear applied advancedState) */
-function clearModalSelections() {
-  document.querySelectorAll('#advanced-filter-modal .modal-child, #advanced-filter-modal .modal-parent').forEach(i => i.checked = false);
-  document.querySelectorAll('#advanced-filter-modal .modal-spelllevel, #advanced-filter-modal .modal-featurelevel').forEach(i => i.checked = false);
-}
-
-/* read modal selections and write into advancedState (applied) */
-function readModalSelectionsAndApply() {
-  // clear current advancedState
-  advancedState.parentTraits.clear();
-  advancedState.childIds.clear();
-  advancedState.spellLevels.clear();
-  advancedState.featureLevels.clear();
-
-  // parents
-  document.querySelectorAll('.modal-parent:checked').forEach(cb => {
-    advancedState.parentTraits.add(cb.dataset.parent);
-  });
-  // children (individual feat ids)
-  document.querySelectorAll('.modal-child:checked').forEach(cb => {
-    advancedState.childIds.add(cb.dataset.id);
-  });
-  // spelllevels
-  document.querySelectorAll('.modal-spelllevel:checked').forEach(cb => advancedState.spellLevels.add(cb.value));
-  // featurelevels
-  document.querySelectorAll('.modal-featurelevel:checked').forEach(cb => advancedState.featureLevels.add(cb.value));
-}
-
-/* -------------------------
-   Keep modal options in sync with primary scope (disable if no matching items)
-   - Called whenever sidebar filters change or data changes
-   ------------------------- */
-function buildAndDisableModalOptions(feats) {
-    const modalContainer = document.getElementById("modal-options");
-    modalContainer.innerHTML = ""; // Clear previous contents
-
-    // Example structure: Class groups
-    const classGroups = ["Feature", "Talent", "Multiclass", "Spell"];
-    const ancestryGroups = ["Trait", "Lineage"];
-    const spellLevels = ["1st", "3rd", "5th", "7th", "9th"];
-    const featureLevels = ["1st", "3rd", "5th", "7th", "9th"];
-
-    // Create a table element
-    const table = document.createElement("table");
-    table.classList.add("modal-table");
-
-    // Header row
-    const headerRow = document.createElement("tr");
-    const classHeader = document.createElement("th");
-    classHeader.colSpan = classGroups.length;
-    classHeader.innerText = "Class";
-    headerRow.appendChild(classHeader);
-
-    const ancestryHeader = document.createElement("th");
-    ancestryHeader.colSpan = ancestryGroups.length;
-    ancestryHeader.innerText = "Ancestry";
-    headerRow.appendChild(ancestryHeader);
-
-    table.appendChild(headerRow);
-
-    // Group names row
-    const groupRow = document.createElement("tr");
-    [...classGroups, ...ancestryGroups].forEach(g => {
-        const th = document.createElement("th");
-        th.innerText = g;
-        groupRow.appendChild(th);
-    });
-    table.appendChild(groupRow);
-
-    // Find all unique items for each group from feats
-    const groupedOptions = {};
-    [...classGroups, ...ancestryGroups].forEach(g => groupedOptions[g] = new Set());
-
-    feats.forEach(f => {
-        if (classGroups.includes(f.group)) groupedOptions[f.group].add(f.parentTrait || f.name);
-        if (ancestryGroups.includes(f.group)) groupedOptions[f.group].add(f.parentTrait || f.name);
-    });
-
-    // Determine longest column count for looping
-    const maxRows = Math.max(...Object.values(groupedOptions).map(set => set.size));
-
-    // Build rows
-    for (let i = 0; i < maxRows; i++) {
-        const row = document.createElement("tr");
-        [...classGroups, ...ancestryGroups].forEach(g => {
-            const td = document.createElement("td");
-            const option = Array.from(groupedOptions[g])[i];
-            if (option) {
-                const label = document.createElement("label");
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.value = option;
-
-                // Disable if no feats match this option
-                const hasMatch = feats.some(f => 
-                    (f.group === g && (f.parentTrait === option || f.name === option))
-                );
-                checkbox.disabled = !hasMatch;
-
-                label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(option));
-                td.appendChild(label);
-            }
-            row.appendChild(td);
-        });
-        table.appendChild(row);
-    }
-
-    modalContainer.appendChild(table);
-
-    // Spell level and feature level filters can be appended below the table
-    const levelFilters = document.createElement("div");
-    levelFilters.classList.add("level-filters");
-
-    const spellDiv = document.createElement("div");
-    spellDiv.innerHTML = `<h4>Spell Levels</h4>`;
-    spellLevels.forEach(level => {
-        const label = document.createElement("label");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = level;
-        checkbox.disabled = !feats.some(f => f.spellLevel === level);
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(level));
-        spellDiv.appendChild(label);
-    });
-
-    const featureDiv = document.createElement("div");
-    featureDiv.innerHTML = `<h4>Feature Levels</h4>`;
-    featureLevels.forEach(level => {
-        const label = document.createElement("label");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = level;
-        checkbox.disabled = !feats.some(f => f.featureLevel === level);
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(level));
-        featureDiv.appendChild(label);
-    });
-
-    levelFilters.appendChild(spellDiv);
-    levelFilters.appendChild(featureDiv);
-    modalContainer.appendChild(levelFilters);
-}
-
-/* -------------------------
-   End of file
-   ------------------------- */
+  canonicalClassOrder.forEach(k => { 
+    if (classGroups[k] && classGroups[k].
