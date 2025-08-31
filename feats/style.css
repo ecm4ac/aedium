@@ -152,12 +152,6 @@ body {
   overflow-y: auto;
   background: var(--color-main-bg);
 }
-
-/* Remove any competing height calculations */
-.sidebar,
-.main-content {
-  /* Remove any height calculations that reference header-height */
-}
   
 /* ===== RESET ===== */
 * {
