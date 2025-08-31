@@ -4,21 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>13th Age Feats</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant:ital,wght@0,300..700;1,300..700&family=IM+Fell+English+SC&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Roboto+Serif:ital,opsz,wght@0,8..144,100..900;1,8..144,100..900&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <!-- Sticky header -->
   <header class="sticky-header">
     <div class="header-left">
-      <h1>13th Age Feats</h1>
+      <img src="/aedium-root/assets/aedium-retro-logo.png" alt="Aedium Logo" class="header-logo">
     </div>
     <div class="header-right">
       <div class="active-filters" id="active-filters">
         <!-- Pills will be generated here dynamically -->
       </div>
-      <button id="advanced-filter-btn">Advanced Filters</button>
-      <button id="reset-advanced-btn">Reset Advanced</button>
+      <button id="reset-filters-btn" title="Reset All Filters"></button>
+      <span class="button-divider">|</span>
+      <button id="advanced-filter-btn" title="Advanced Filters"></button>
+      <button id="reset-advanced-btn" title="Reset Advanced"></button>
     </div>
   </header>
 
@@ -31,6 +36,14 @@
           <div class="acc-header">Type</div>
           <div class="acc-content" id="type-filters">
             <!-- Type checkboxes will be generated here -->
+          </div>
+        </div>
+
+	<!-- Tier Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Tier</div>
+          <div class="acc-content" id="tier-filters">
+            <!-- Tier checkboxes will be generated here -->
           </div>
         </div>
         
@@ -50,15 +63,7 @@
           </div>
         </div>
         
-        <!-- Tier Filter Accordion -->
-        <div class="accordion open">
-          <div class="acc-header">Tier</div>
-          <div class="acc-content" id="tier-filters">
-            <!-- Tier checkboxes will be generated here -->
-          </div>
-        </div>
       </div>
-      <button id="reset-filters">Reset All Filters</button>
     </aside>
 
     <!-- Main content -->
@@ -73,8 +78,7 @@
   <div id="advanced-filter-modal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <span class="close-modal">&times;</span>
-      <h2>Advanced Filters</h2>
-      
+            
       <!-- Dynamic grid container -->
       <div id="advanced-filter-container">
         <!-- JS will inject advanced filter grid here -->

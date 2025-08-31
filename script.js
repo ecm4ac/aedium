@@ -1,8 +1,191 @@
-/* script.js
-   Full interactive filtering + dynamic advanced modal generator
-   Data-agnostic; expects feats.json objects with keys:
-   name,id,ancestry,class,category,group,featureTier,parentTrait,spellLevel,featureLevel,tag,feats[]
-*/
+/* Add this at the very top of your script.js file, before any other code */
+
+// Import marked library from CDN
+let marked;
+
+// Load marked library first, then continue with your app
+(async function initializeApp() {
+  try {
+    // Dynamically import marked from CDN
+    const markedModule = await import('https://cdn.jsdelivr.net/npm/marked@12.0.0/+esm');
+    marked = markedModule.marked;
+    
+    // Configure marked options for better formatting
+    marked.setOptions({
+      breaks: true,        // Convert single \n to <br>
+      gfm: true,          // Enable GitHub Flavored Markdown
+      tables: true,       // Enable table parsing
+      sanitize: false,    // Don't sanitize HTML (be careful with user input)
+      smartLists: true,   // Use smarter list behavior
+      pedantic: false     // Don't be too strict about markdown rules
+    });
+    
+    console.log('Marked library loaded successfully');
+    
+    // Now load your feats data and initialize the app
+    loadFeatsData();
+    
+  } catch (error) {
+    console.error('Failed to load marked library:', error);
+    // Fallback: continue without markdown parsing
+    loadFeatsData();
+  }
+})();
+
+// Move your existing fetch logic into this function
+function loadFeatsData() {
+  fetch('feats.json')
+    .then(r => r.json())
+    .then(data => {
+      featsData = data;
+      populateSidebarOptions(data);
+      applyFilters(); // first render
+      wireAccordionToggles();
+      wireReset();
+      wireStickyModalButtons();
+    })
+    .catch(e => {
+      console.error('Failed to load feats.json', e);
+      document.getElementById('results-container').innerHTML = '<p>Error loading feats.json</p>';
+    });
+}
+
+// Improved helper function to safely parse markdown
+function parseMarkdown(text) {
+  if (!marked || !text) return text;
+  
+  try {
+    // Clean up the text first
+    let processed = text
+      // Remove any leading/trailing quotes that might interfere
+      .replace(/^["']|["']$/g, '')
+      .trim();
+    
+    // Always process the text for better markdown formatting
+    processed = processed
+      // First, normalize line endings
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      // Convert literal \n sequences to actual newlines (in case they're escaped)
+      .replace(/\\n/g, '\n')
+      // Convert dash-space at beginning of lines to proper list items
+      .replace(/^-\s+/gm, '- ')
+      // Ensure proper spacing around list items
+      .replace(/\n-\s+/g, '\n\n- ')
+      // Convert sequences of \n\n- back to single \n- to avoid double spacing
+      .replace(/\n\n\n-/g, '\n\n-')
+      // Convert single newlines to double newlines for paragraphs, but preserve existing doubles
+      .replace(/(?<!\n)\n(?!\n)(?!-)/g, '\n\n')
+      // Clean up any triple+ newlines that might have been created
+      .replace(/\n{3,}/g, '\n\n')
+      // Clean up leading newlines
+      .replace(/^\n+/, '')
+      // Clean up trailing newlines
+      .replace(/\n+$/, '');
+    
+    // Parse with marked
+    const parsed = marked.parse(processed);
+    
+    // Post-process to clean up any formatting issues
+    return parsed
+      // Remove empty paragraphs
+      .replace(/<p>\s*<\/p>/g, '')
+      // Clean up whitespace around lists
+      .replace(/(<\/ul>|<\/ol>)\s*(<p>)/g, '$1\n$2')
+      .replace(/(<\/p>)\s*(<ul>|<ol>)/g, '$1\n$2')
+      // Remove wrapping <p> tags if the entire content is just one paragraph
+      .replace(/^<p>(.*)<\/p>$/s, '$1')
+      .trim();
+    
+  } catch (error) {
+    console.warn('Markdown parsing failed, returning original text:', error);
+    return text;
+  }
+}
+
+// Updated renderResults function with improved markdown support
+function renderResults(results, tierFilters = []) {
+  const container = document.getElementById('results-container');
+  container.innerHTML = '';
+
+  if (!results.length) {
+    container.innerHTML = '<p>No feats match your current filters.</p>';
+    return;
+  }
+
+  results.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'feat-card';
+
+    // Build meta parts per your rules
+    const metaParts = [];
+    if (f.category === 'Ancestry') {
+      if (f.ancestry) metaParts.push(`${f.ancestry}${f.group ? ' ' + f.group : ''}`);
+    } else if (f.category === 'Class') {
+      if (f.class) metaParts.push(`${f.class}${f.group ? ' ' + f.group : ''}`);
+    } else {
+      if (f.category) metaParts.push(f.category);
+    }
+    if (f.parentTrait) metaParts.push(f.parentTrait);
+    if (f.featureTier) metaParts.push(`${f.featureTier} Tier`);
+    if (f.featureLevel) metaParts.push(`Req Level: ${f.featureLevel}`);
+    if (f.spellLevel) metaParts.push(`${f.spellLevel} Level`);
+
+    // Build tier descriptions with improved markdown parsing
+    let descHtml = '';
+    if (Array.isArray(f.feats)) {
+      const canonical = ['Adventurer','Champion','Epic'];
+      let featsToShow = f.feats;
+      
+      // If tier filters are selected, only show matching tiers
+      if (tierFilters.length > 0) {
+        featsToShow = f.feats.filter(ft => tierFilters.includes(ft.tier));
+      }
+      
+      // If no tiers match the filter, skip this feat entirely
+      if (tierFilters.length > 0 && featsToShow.length === 0) {
+        return; // Skip rendering this feat card
+      }
+      
+      const sorted = [...featsToShow].sort((a,b)=> canonical.indexOf(a.tier)-canonical.indexOf(b.tier));
+      sorted.forEach(e => {
+        let desc = String(e.description || '')
+          .replace(/^"|"$/g,'')
+          .trim();
+        
+        // Parse markdown if available - this returns HTML
+        const parsedDesc = parseMarkdown(desc);
+        
+        // If parsed description starts with <p>, we need to merge the tier label with the first paragraph
+        let finalHtml;
+        if (parsedDesc.startsWith('<p>')) {
+          // Replace the opening <p> tag to include the tier label
+          finalHtml = parsedDesc.replace('<p>', `<p><strong>${e.tier}:</strong> `);
+        } else {
+          // If no <p> tags, just concatenate
+          finalHtml = `<strong>${e.tier}:</strong> ${parsedDesc}`;
+        }
+        
+        descHtml += `<div class="tier-description">${finalHtml}</div>`;
+      });
+    }
+
+    // tags
+    let tagHtml = '';
+    if (f.tag) {
+      const tags = String(f.tag).split(',').map(t=>t.trim()).filter(Boolean);
+      tags.forEach(t => tagHtml += `<span class="tag">${t}</span>`);
+    }
+
+    card.innerHTML = `
+      <h3><strong>${f.name}</strong></h3>
+      ${metaParts.length ? `<div class="feat-meta">${metaParts.join(' | ')}</div>` : ''}
+      <div class="feat-description">${descHtml}</div>
+      ${tagHtml ? `<div class="feat-tags">${tagHtml}</div>` : ''}
+    `;
+    container.appendChild(card);
+  });
+}
 
 /* -------------------------
    Utilities
@@ -44,24 +227,6 @@ let advancedState = {               // persists applied advanced filters
   spellLevels: new Set(),          // "1st","3rd",...
   featureLevels: new Set()         // "1st","3rd",...
 };
-
-/* -------------------------
-   Load data and init
-   ------------------------- */
-fetch('feats.json')
-  .then(r => r.json())
-  .then(data => {
-    featsData = data;
-    populateSidebarOptions(data);
-    applyFilters(); // first render
-    wireAccordionToggles();
-    wireReset();
-    wireStickyModalButtons();
-  })
-  .catch(e => {
-    console.error('Failed to load feats.json', e);
-    document.getElementById('results-container').innerHTML = '<p>Error loading feats.json</p>';
-  });
 
 /* -------------------------
    Sidebar population & wiring
@@ -140,7 +305,7 @@ function wireAccordionToggles() {
    Reset buttons
    ------------------------- */
 function wireReset() {
-  document.getElementById('reset-filters').addEventListener('click', () => {
+  document.getElementById('reset-filters-btn').addEventListener('click', () => {
     document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(cb => cb.checked = false);
     // also clear advanced applied filters
     clearAdvancedState();
@@ -234,77 +399,6 @@ function applyAdvancedToSet(candidates) {
     if (f.featureLevel && advancedState.featureLevels.size && advancedState.featureLevels.has(f.featureLevel)) return true;
 
     return false;
-  });
-}
-
-/* -------------------------
-   Render results
-   ------------------------- */
-function renderResults(results, tierFilters = []) {
-  const container = document.getElementById('results-container');
-  container.innerHTML = '';
-
-  if (!results.length) {
-    container.innerHTML = '<p>No feats match your current filters.</p>';
-    return;
-  }
-
-  results.forEach(f => {
-    const card = document.createElement('div');
-    card.className = 'feat-card';
-
-    // Build meta parts per your rules
-    const metaParts = [];
-    if (f.category === 'Ancestry') {
-      if (f.ancestry) metaParts.push(`${f.ancestry}${f.group ? ' ' + f.group : ''}`);
-    } else if (f.category === 'Class') {
-      if (f.class) metaParts.push(`${f.class}${f.group ? ' ' + f.group : ''}`);
-    } else {
-      if (f.category) metaParts.push(f.category);
-    }
-    if (f.parentTrait) metaParts.push(f.parentTrait);
-    if (f.featureTier) metaParts.push(`${f.featureTier} Tier`);
-    if (f.featureLevel) metaParts.push(`Req Level: ${f.featureLevel}`);
-    if (f.spellLevel) metaParts.push(`${f.spellLevel} Level`);
-
-    // Build tier descriptions (sorted canonical order)
-    // Filter by selected tiers if any are selected
-    let descHtml = '';
-    if (Array.isArray(f.feats)) {
-      const canonical = ['Adventurer','Champion','Epic'];
-      let featsToShow = f.feats;
-      
-      // If tier filters are selected, only show matching tiers
-      if (tierFilters.length > 0) {
-        featsToShow = f.feats.filter(ft => tierFilters.includes(ft.tier));
-      }
-      
-      // If no tiers match the filter, skip this feat entirely
-      if (tierFilters.length > 0 && featsToShow.length === 0) {
-        return; // Skip rendering this feat card
-      }
-      
-      const sorted = [...featsToShow].sort((a,b)=> canonical.indexOf(a.tier)-canonical.indexOf(b.tier));
-      sorted.forEach(e => {
-        const desc = String(e.description || '').replace(/^"|"$/g,'').trim();
-        descHtml += `<p><strong>${e.tier}:</strong> ${desc}</p>`;
-      });
-    }
-
-    // tags
-    let tagHtml = '';
-    if (f.tag) {
-      const tags = String(f.tag).split(',').map(t=>t.trim()).filter(Boolean);
-      tags.forEach(t => tagHtml += `<span class="tag">${t}</span>`);
-    }
-
-    card.innerHTML = `
-      <h3><strong>${f.name}</strong></h3>
-      ${metaParts.length ? `<div class="feat-meta">${metaParts.join(' | ')}</div>` : ''}
-      <div class="feat-description">${descHtml}</div>
-      ${tagHtml ? `<div class="feat-tags">${tagHtml}</div>` : ''}
-    `;
-    container.appendChild(card);
   });
 }
 
@@ -458,9 +552,9 @@ function buildModalOptions() {
   });
   const ancColsFinal = ancCols.slice(0,2);
 
-  // Build stacked layout instead of side-by-side
-  const container = document.createElement('div');
-  container.className = 'adv-container';
+  // Create a wrapper for the sections
+  const sectionsWrapper = document.createElement('div');
+  sectionsWrapper.className = 'adv-container';
   
   // Build Class section if there are class items
   if (classColsFinal.length > 0) {
@@ -529,7 +623,7 @@ function buildModalOptions() {
     });
     
     classSection.appendChild(classGrid);
-    container.appendChild(classSection);
+    sectionsWrapper.appendChild(classSection);
   }
   
   // Build Ancestry section if there are ancestry items
@@ -597,10 +691,11 @@ function buildModalOptions() {
     });
     
     ancestrySection.appendChild(ancestryGrid);
-    container.appendChild(ancestrySection);
+    sectionsWrapper.appendChild(ancestrySection);
   }
 
-  document.getElementById('advanced-filter-container').appendChild(container);
+  // Append the wrapper to the container
+  container.appendChild(sectionsWrapper);
   
   // Build level filters
   buildLevelFilters(data);
@@ -721,4 +816,4 @@ function readModalSelectionsAndApply() {
 
 /* -------------------------
    End of file
-   ------------------------- */
+   -------------------------*/
