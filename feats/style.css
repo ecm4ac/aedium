@@ -689,19 +689,19 @@ body {
 
 /* ===== FILTER BUTTONS ===== */
 .header-right #reset-filters-btn {
-  background: url('/aedium-root/assets/icons/reset-arrow.png') no-repeat var(--spacing-sm) center;
+  background: url('assets\icons\clear-filters.png') no-repeat var(--spacing-sm) center;
   background-size: 24px;
   padding-left: 28px;
 }
 
 .header-right #advanced-filter-btn {
-  background: url('/aedium-root/assets/icons/filter.png') no-repeat var(--spacing-sm) center;
+  background: url('assets\icons\filter.png') no-repeat var(--spacing-sm) center;
   background-size: 24px;
   padding-left: 28px;
 }
 
 .header-right #reset-advanced-btn {
-  background: url('/aedium-root/assets/icons/clear-filters.png') no-repeat var(--spacing-sm) center;
+  background: url('assets\icons\reset-arrow.png') no-repeat var(--spacing-sm) center;
   background-size: 24px;
   padding-left: 28px;
 }
