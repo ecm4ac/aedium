@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>13th Age Feats</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Cormorant:ital,wght@0,300..700;1,300..700&family=IM+Fell+English+SC&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Roboto+Serif:ital,opsz,wght@0,8..144,100..900;1,8..144,100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Sticky header -->
+  <header class="sticky-header">
+    <div class="header-left">
+      <img src="/aedium-root/assets/aedium-retro-logo.png" alt="Aedium Logo" class="header-logo">
+    </div>
+    <div class="header-right">
+      <div class="active-filters" id="active-filters">
+        <!-- Pills will be generated here dynamically -->
+      </div>
+      <button id="reset-filters-btn" title="Reset All Filters"></button>
+      <span class="button-divider">|</span>
+      <button id="advanced-filter-btn" title="Advanced Filters"></button>
+      <button id="reset-advanced-btn" title="Reset Advanced"></button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div id="filter-groups">
+        <!-- Type Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Type</div>
+          <div class="acc-content" id="type-filters">
+            <!-- Type checkboxes will be generated here -->
+          </div>
+        </div>
+
+	<!-- Tier Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Tier</div>
+          <div class="acc-content" id="tier-filters">
+            <!-- Tier checkboxes will be generated here -->
+          </div>
+        </div>
+        
+        <!-- Ancestry Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Ancestry</div>
+          <div class="acc-content" id="ancestry-filters">
+            <!-- Ancestry checkboxes will be generated here -->
+          </div>
+        </div>
+        
+        <!-- Class Filter Accordion -->
+        <div class="accordion open">
+          <div class="acc-header">Class</div>
+          <div class="acc-content" id="class-filters">
+            <!-- Class checkboxes will be generated here -->
+          </div>
+        </div>
+        
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <div id="results-container">
+        <p>Make a selection to view feats.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Advanced Filter Modal -->
+  <div id="advanced-filter-modal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+            
+      <!-- Dynamic grid container -->
+      <div id="advanced-filter-container">
+        <!-- JS will inject advanced filter grid here -->
+      </div>
+      
+      <!-- Level filters -->
+      <div class="level-filters">
+        <div>
+          <h4>Spell Levels</h4>
+          <div id="modal-spelllevel-options">
+            <!-- Spell level checkboxes will be generated here -->
+          </div>
+        </div>
+        <div>
+          <h4>Feature Levels</h4>
+          <div id="modal-featurelevel-options">
+            <!-- Feature level checkboxes will be generated here -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button id="apply-advanced-filters">Apply Filters</button>
+        <button id="clear-advanced-filters">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
